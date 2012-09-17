@@ -569,21 +569,34 @@ class TranslationProject(models.Model):
         store.sync(update_structure=False, update_translation=True,
                    conservative=True)
         stats = store.getquickstats()
-        author = user.username
-
-        message = u"Commit from %(server)s by user %(user)s: %(translated)d " \
-                  u"of %(total)d messages translated (%(fuzzy)d fuzzy)." % {
-                      'server': settings.TITLE,
-                      'user': author,
-                      'translated': stats.get("translated", 0),
-                      'total': stats.get("total", 0),
-                      'fuzzy': stats.get("fuzzy", 0)
-                  }
+        username = user.username
 
         # Try to append email as well, since some VCS does not allow omitting
         # it (ie. Git).
         if user.is_authenticated() and len(user.email):
-            author += " <%s>" % user.email
+            author = username + " <%s>" % user.email
+        else:
+            author = username
+
+        commitdata = {
+                'server': settings.TITLE,
+                'user': username,
+                'author': author,
+                'translated': stats.get("translated", 0),
+                'total': stats.get("total", 0),
+                'fuzzy': stats.get("fuzzy", 0),
+                'project': self.project.fullname,
+                'language': self.language.name,
+                'filename': store.file.name,
+        }
+
+        default_message = (u"Commit from %(server)s by user %(user)s: "
+                           u"%(translated)d of %(total)d messages translated "
+                           u"(%(fuzzy)s fuzzy).")
+        try:
+            message = settings.VCS_COMMIT_MESSAGE % commitdata
+        except (KeyError, TypeError):
+            message = default_message % commitdata
 
         from pootle.scripts import hooks
         try:
