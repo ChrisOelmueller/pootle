@@ -20,6 +20,9 @@
     <link rel="stylesheet" type="text/css" href="{{ "css/ie.css"|s }}" />
     <![endif]-->
     {% endblock css %}
+    {% assets "css_custom" %}
+    <link rel="stylesheet" type="text/css" href="{{ ASSET_URL }}" />
+    {% endassets %}
     {% block favicon %}
     <link rel="shortcut icon" href="{{ "favicon.ico"|s }}" />
     {% endblock favicon %}
@@ -28,37 +31,36 @@
     <script type="text/javascript" src="{{ ASSET_URL }}"></script>
     {% endassets %}
     <script type="text/javascript">
-      function l(path) {
-        var basepath = "{{ settings.SCRIPT_NAME  }}";
-        if (path[0] == '/') {
-          return basepath + path;
+    function l(path) {
+      var basepath = "{{ settings.SCRIPT_NAME  }}";
+      if (path[0] == '/') {
+        return basepath + path;
+      }
+      return path;
+    }
+    function s(path) {
+      return l("{{ STATIC_URL }}" + path);
+    }
+    $(function() {
+      $("[title], [original-title]").tipsy({
+        gravity: $.fn.tipsy.autoBounds(150, 'n'),
+        html: true, fade: true, delayIn: 750, live: true});
+      $.ajaxSetup({ traditional: true });
+      $.ajaxPrefilter(function (options, originalOptions) {
+        if (options.type === 'post' || options.type === 'POST') {
+          options.data = $.param(
+            $.extend(originalOptions.data,
+                     { csrfmiddlewaretoken: '{{ csrf_token }}' }) );
         }
-        return path;
-      }
-      function s(path) {
-        return l("{{ STATIC_URL }}" + path);
-      }
-    $(document).ready(function() {
-        $("[title], [original-title]").tipsy({
-          gravity: $.fn.tipsy.autoBounds(150, 'n'),
-          html: true, fade: true, delayIn: 750, live: true});
-        $.ajaxSetup({ traditional: true });
-        $.ajaxPrefilter(function (options, originalOptions) {
-          if (options.type === 'post' || options.type === 'POST') {
-            options.data = $.param(
-              $.extend(originalOptions.data,
-                       { csrfmiddlewaretoken: '{{ csrf_token }}' }) );
-          }
-        });
-        initZoom();
+      });
+      initZoom();
     });
     </script>
     {% endblock js %}
     {% block extra_head %}{% endblock %}
   </head>
 
-  <body id="{% if body.id %}{{ body.id }}{% else %}home{% endif %}"
-        class="{% block bodyclass %}{% endblock %}">
+  <body id="{% block body_id %}{% endblock %}">
     {% block body %}
     <div id="wrapper">
       {% if messages %}
@@ -72,45 +74,64 @@
       </div>
       {% endif %}
 
-      <div id="header">
-        {% block header %}
-        <div id="nav-access">
-          <a href="#nav-main">{% trans 'skip to navigation' %}</a>
-        </div>
-        <h1>
-          <a href='{{"/"|l}}' title='{% trans "Home" %}'>{{ settings.TITLE }}</a>
-          {% block breadcrumbs %}
-          <span id="breadcrumbs">
-          {% block breadcrumb_content %}{% endblock %}
-          </span>
+      <div id="navbar">
+        <div id="navbar-inner">
+          {% block navbar %}
+          <div id="nav-access">
+            <a href="#nav-main">{% trans 'skip to navigation' %}</a>
+          </div>
+          <a href="{{ "/"|l }}" class="brand"><i class="logo"></i>{{ settings.TITLE }}</a>
+
+          <div id="zoom">
+            <a id="zoom-out" title="{% trans "Zoom out (Ctrl+Shift+-)" %}" href="javascript:zoom(-1)">&ndash;</a>
+            <a id="zoom-reset" title="{% trans "Reset zoom (Ctrl+Shift+0)" %}" href="javascript:zoom(0)">T</a>
+            <a id="zoom-in" title="{% trans "Zoom in (Ctrl+Shift++)" %}" href="javascript:zoom(1)">+</a>
+          </div>
+          <ul id="nav-main">
+            {% if user.is_authenticated %}
+            <li id="user">
+              <a href="{{ user.get_profile.get_absolute_url }}">
+              <img src="{{ user.get_profile|gravatar:20 }}" />{{ user.username }}</a>
+            </li>
+            {% endif %}
+            <li><a href='{{ "/projects/"|l }}'>{% trans "Projects" %}</a></li>
+            {% if user.is_superuser %}
+            <li><a class="admin" href='{{ "/admin/"|l }}'>{% trans "Admin" %}</a></li>
+            {% endif %}
+            {% if user.is_authenticated %}
+            <li><a href='{{ "/accounts/logout/"|l }}'>{% trans "Log Out" %}</a></li>
+            {% else %}
+            {% if settings.CAN_REGISTER %}
+            <li><a href='{{ "/accounts/register/"|l }}'>{% trans "Register" %}</a></li>
+            {% endif %}
+            <li><a href="{{ "/accounts/login/"|l }}{{ request|get_next }}">{% trans "Log In" %}</a></li>
+            {% endif %}
+          </ul>
+          {% block navbar_extra %}{% endblock %}
           {% endblock %}
-        </h1>
-        <ul id="nav-main" lang="{{ LANGUAGE_CODE }}">
-          {% if user.is_authenticated %}
-          <li id="user">
-            <a href="{{ user.get_profile.get_absolute_url }}">
-            <img src="{{ user.get_profile|gravatar:20 }}" />{{ user.username }}</a>
-          </li>
-          {% endif %}
-          <li><a href='{{ "/projects/"|l }}'>{% trans "Projects" %}</a></li>
-          {% if user.is_superuser %}
-          <li><a class="admin" href='{{ "/admin/"|l }}'>{% trans "Admin" %}</a></li>
-          {% endif %}
-          {% if user.is_authenticated %}
-          <li><a href='{{ "/accounts/logout/"|l }}'>{% trans "Log Out" %}</a></li>
-          {% else %}
-          {% if settings.CAN_REGISTER %}
-          <li><a href='{{ "/accounts/register/"|l }}'>{% trans "Register" %}</a></li>
-          {% endif %}
-          <li><a href="{{ "/accounts/login/"|l }}{{ request|get_next }}">{% trans "Log In" %}</a></li>
-          {% endif %}
-        </ul>
-        <div id="zoom">
-          <a id="zoom-out" title="{% trans "Zoom out (Ctrl+Shift+Insert)" %}" href="javascript:zoom(-1)">&ndash;</a><a id="zoom-reset" title="{% trans "Reset zoom (Ctrl+Shift+Home)" %}" href="javascript:zoom(0)">T</a><a id="zoom-in" title="{% trans "Zoom in (Ctrl+Shift+Page Up)" %}" href="javascript:zoom(1)">+</a>
         </div>
-        {% block header_extra %}{% endblock %}
-        {% endblock header %}
       </div>
+
+    {% block header_block %}
+      {% block header_meta_block %}
+      <div id="header-meta" class="header">
+        {% block header_meta %}{% endblock %}
+
+        {% block breadcrumbs_block %}
+        <ul class="breadcrumb">
+        {% block breadcrumbs %}{% endblock %}
+        </ul>
+        {% endblock %}
+      </div>
+      {% endblock %}
+
+      {% block header_tabs_block %}
+      <div id="header-tabs" class="header">
+        {% block search %}{% endblock %}
+        {% block tabs %}{% endblock %}
+      </div>
+      {% endblock %}
+    {% endblock %}
 
       <div id="body">
         <div id="xhr-activity" class="xhr-message hide">
@@ -119,15 +140,9 @@
         <div id="xhr-error" class="xhr-message hide">
           <span> </span>
         </div>
-        <div id="nav-secondary" lang="{{ LANGUAGE_CODE }}">
-        {% block nav-secondary %}
-          {% block search %}{% endblock %}
-        {% endblock nav-secondary %}
-        </div>
 
         <div id="precontent">
           {% block precontent %}{% endblock %}
-          {% block innernav %}{% endblock %}
         </div>
 
         <div id="content">
@@ -136,17 +151,14 @@
 
         <div id="postcontent">
           {% block postcontent %}{% endblock %}
-        </div><!-- postcontent -->
+        </div>
         {% block extra_content %}{% endblock %}
       </div>
 
       {% block footer %}
-      <div id="footer" lang="{{ LANGUAGE_CODE }}">
+      <div id="footer">
         <ul class="nav">
-          <li>
-            <a href="http://translate.readthedocs.org/projects/pootle/en/latest/users/index.html">
-            {% trans "Help" %}</a>
-          </li>
+          <li><a href="http://docs.translatehouse.org/projects/pootle/">{% trans "Help" %}</a></li>
           {% if settings.CAN_CONTACT %}
           <li><a href='{{ "/contact/"|l }}'>{% trans "Contact Us" %}</a></li>
           {% endif %}
@@ -164,6 +176,7 @@
     </div>
     {% block scripts %}
     {% block scripts_extra %}{% endblock %}
+    <script type="text/javascript" src="{% url django.views.i18n.javascript_catalog %}"></script>
     {% endblock scripts %}
     {% endblock body %}
   </body>

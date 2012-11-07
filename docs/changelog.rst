@@ -21,7 +21,9 @@ Not released yet.
 - Static files are now handled by the ``django.contrib.staticfiles`` module.
   This means you will need to run the ``python manage.py collectstatic``
   command on production and serve the *pootle/assets/* directory from your
-  webserver.
+  webserver at */assets/*. If you are upgrading from a previous version, you
+  will need to replace the occurrences of *static* with *assets* within your
+  web server configuration.
 
 - Static files are bundled into assets by using `django-assets
   <http://elsdoerfer.name/docs/webassets/django/index.html>`_.
@@ -29,8 +31,11 @@ Not released yet.
 - Several features from translation projects have been merged into the
   *Overview* tab, including quality check failures and directory- and
   file-level actions. As a consequence the *Review* tab has been dropped and
-  the *Translate* tab serves solely for displaying the actual translation
+  the *Translate* tab serves solely to display the actual translation
   editor.
+
+- Settings have been migrated from *localsettings.py* into *settings/\*.conf*
+  files. Your customisations go in *settings/90-local.conf*
 
 
 Version 2.1.6
@@ -38,9 +43,11 @@ Version 2.1.6
 
 Bugfix release, released on April 13th 2011.
 
-This is the first version that is compatible with Django 1.2.5 and Django 1.3.
-You also need Translate Toolkit 1.9.0 to be able to use these newer versions
-of Django.
+- This is the first version that is compatible with Django 1.2.5 and
+  Django 1.3.
+
+- You also need Translate Toolkit 1.9.0 to be able to use these newer
+  versions of Django.
 
 
 Version 2.1.1
@@ -58,7 +65,7 @@ Bugfix release, released on September 3rd 2010.
 Version 2.1
 -----------
 
-Released on August 17 2010.
+Released on August 17th 2010.
 
 - Pootle no longer depends on statsdb and SQLite.
 
@@ -99,7 +106,7 @@ Released on December 7th 2009.
   in flat files (projects, languages, users and permissions) is now stored
   in a database. Migration scripts are provided.
 
-  Review all suggestions before migrating, and note that assignments
+- Review all suggestions before migrating, and note that assignments
   are not yet supported in Pootle 2.0.
 
 

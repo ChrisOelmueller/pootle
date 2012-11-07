@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright 2009 Zuza Software Foundation
+# Copyright 2009-2012 Zuza Software Foundation
 #
 # This file is part of Pootle.
 #
@@ -23,10 +23,12 @@ events."""
 
 import logging
 
-from pootle_notifications.models import Notice
 from pootle_app.models import Directory
+from pootle_misc.stats import stats_message_raw
+from pootle_notifications.models import Notice
 from pootle_profile.models import get_profile
 from pootle_store.models import Unit
+
 
 ##### Model Events #####
 
@@ -35,24 +37,30 @@ def new_object(created, message, parent):
         notice = Notice(directory=parent, message=message)
         notice.save()
 
+
 def new_language(sender, instance, created=False, raw=False, **kwargs):
     if raw:
         return
+
     message = 'New language <a href="%s">%s</a> created.' % (
             instance.get_absolute_url(), instance.fullname)
     new_object(created, message, instance.directory.parent)
 
+
 def new_project(sender, instance, created=False, raw=False, **kwargs):
     if raw:
         return
+
     message = 'New project <a href="%s">%s</a> created.' % (
         instance.get_absolute_url(), instance.fullname)
     new_object(created, message, parent=Directory.objects.root)
 
+
 def new_user(sender, instance, created=False, raw=False, **kwargs):
     if raw:
         return
-    # new user needs to be wrapped in a try block because it might be
+
+    # New user needs to be wrapped in a try block because it might be
     # called before the rest of the models are loaded when first
     # installing Pootle
 
@@ -64,21 +72,27 @@ def new_user(sender, instance, created=False, raw=False, **kwargs):
     except:
         pass
 
-def new_translationproject(sender, instance, created=False, raw=False, **kwargs):
+
+def new_translationproject(sender, instance, created=False, raw=False,
+                           **kwargs):
     if raw:
         return
+
     message = 'New project <a href="%s">%s</a> added to language <a href="%s">%s</a>.' % (
         instance.get_absolute_url(), instance.project.fullname,
         instance.language.get_absolute_url(), instance.language.fullname)
     new_object(created, message, instance.language.directory)
+
     message = 'New language <a href="%s">%s</a> added to project <a href="%s">%s</a>.' % (
         instance.get_absolute_url(), instance.language.fullname,
         instance.project.get_absolute_url(), instance.project.fullname)
     new_object(created, message, instance.project.directory)
 
+
 def unit_updated(sender, instance, raw=False, **kwargs):
     if raw:
         return
+
     if instance.id is not None and instance.istranslated():
         dbcopy = Unit.objects.get(id=instance.id)
         if dbcopy.istranslated():
@@ -87,6 +101,7 @@ def unit_updated(sender, instance, raw=False, **kwargs):
 
         store = instance.store
         stats = store.getquickstats()
+
         if stats['total'] - stats['translated'] == 1:
             # by the end of this we will be 100%
             translation_project = store.translation_project
@@ -95,26 +110,30 @@ def unit_updated(sender, instance, raw=False, **kwargs):
                     store.get_absolute_url(), store.name)
             quickstats = translation_project.getquickstats()
             quickstats['translated'] += 1
+
             if dbcopy.isfuzzy():
                 quickstats['fuzzy'] -= 1
-            message += stats_message("Project now at", quickstats)
+
+            message += stats_message_raw("Project now at", quickstats)
             new_object(True, message, directory)
 
-##### TranslationProject Events #####
 
-from pootle_translationproject.models import stats_message
+##### TranslationProject Events #####
 
 def updated_from_template(sender, oldstats, newstats, **kwargs):
     if oldstats == newstats:
         # nothing changed, no need to report
         return
+
     message = 'Updated <a href="%s">%s</a> to latest template <br />' % (
         sender.get_absolute_url(), sender.fullname)
-    message += stats_message("Before update", oldstats) + " <br />"
-    message += stats_message("After update", newstats) + " <br />"
+    message += stats_message_raw("Before update", oldstats) + " <br />"
+    message += stats_message_raw("After update", newstats) + " <br />"
     new_object(True, message, sender.directory)
 
-def updated_from_version_control(sender, oldstats, remotestats, newstats, **kwargs):
+
+def updated_from_version_control(sender, oldstats, remotestats, newstats,
+                                 **kwargs):
     if sender.is_template_project:
         # add template news to project instead of translation project
         directory = sender.project.directory
@@ -127,18 +146,22 @@ def updated_from_version_control(sender, oldstats, remotestats, newstats, **kwar
 
     message = 'Updated <a href="%s">%s</a> from version control <br />' % (
         sender.get_absolute_url(), sender.fullname)
-    message += stats_message("Before update", oldstats) + " <br />"
+    message += stats_message_raw("Before update", oldstats) + " <br />"
+
     if not remotestats == newstats:
-        message += stats_message("Remote copy", remotestats) + " <br />"
-    message += stats_message("After update", newstats)
+        message += stats_message_raw("Remote copy", remotestats) + " <br />"
+
+    message += stats_message_raw("After update", newstats)
     new_object(True, message, directory)
+
 
 def committed_to_version_control(sender, store, stats, user, success, **kwargs):
     message = '<a href="%s">%s</a> committed <a href="%s">%s</a> to version control' % (
         user.get_absolute_url(), get_profile(user),
         store.get_absolute_url(), store.pootle_path)
-    message = stats_message(message, stats)
+    message = stats_message_raw(message, stats)
     new_object(success, message, sender.directory)
+
 
 def file_uploaded(sender, oldstats, user, newstats, archive, **kwargs):
     if sender.is_template_project:
@@ -160,14 +183,15 @@ def file_uploaded(sender, oldstats, user, newstats, archive, **kwargs):
             get_profile(user).get_absolute_url(), get_profile(user),
             sender.get_absolute_url(), sender.fullname)
 
-    message += stats_message('Before upload', oldstats) + ' <br />'
-    message += stats_message('After upload', newstats) + ' <br />'
+    message += stats_message_raw('Before upload', oldstats) + ' <br />'
+    message += stats_message_raw('After upload', newstats) + ' <br />'
     new_object(True, message, directory)
 
 
 ##### Profile Events #####
 
-def user_joined_project(sender, instance, action, reverse, model, pk_set, **kwargs):
+def user_joined_project(sender, instance, action, reverse, model, pk_set,
+                        **kwargs):
     if action == 'post_add' and not reverse:
         for project in instance.projects.filter(pk__in=pk_set).iterator():
             message = 'User <a href="%s">%s</a> joined project <a href="%s">%s</a>' % (
@@ -175,7 +199,9 @@ def user_joined_project(sender, instance, action, reverse, model, pk_set, **kwar
                 project.get_absolute_url(), project.fullname)
             new_object(True, message, project.directory)
 
-def user_joined_language(sender, instance, action, reverse, model, pk_set, **kwargs):
+
+def user_joined_language(sender, instance, action, reverse, model, pk_set,
+                         **kwargs):
     if action == 'post_add' and not reverse:
         for project in instance.languages.filter(pk__in=pk_set).iterator():
             message = 'User <a href="%s">%s</a> joined language <a href="%s">%s</a>' % (

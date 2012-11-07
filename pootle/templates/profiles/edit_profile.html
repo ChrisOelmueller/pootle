@@ -1,15 +1,13 @@
 {% extends "user_profile_base_extended.html"  %}
 {% load assets i18n baseurl %}
  
-{% block title %}
-{{ block.super }} » {% trans "Translation Settings" %}
+{% block title %}{% trans "Translation Settings" %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumbs %}
+{{ block.super }}<li>{% trans "Translation Settings" %}</li>
 {% endblock %}
 
-{% block breadcrumb_content %}
-{{ block.super }} » <span>{% trans "Translation Settings" %}</span>
-{% endblock %}
-
-{% block bodyclass %}settings{% endblock %}
+{% block body_id %}settings{% endblock %}
 
 {% block section_description %}{% trans "Here you can configure the settings related to the translation interface as well as your language preferences." %}{% endblock %}
 
@@ -35,7 +33,7 @@
 {% endassets %}
 {% if LANGUAGE_BIDI %}
 <script type="text/javascript">
-$(document).ready(function() {
+$(function() {
   $("select#id_ui_lang option").filter(":not([dir])").bidi();
 });
 </script>

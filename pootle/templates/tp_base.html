@@ -2,23 +2,20 @@
 
 {% load i18n baseurl cache %}
 
-{% block title %}
-    {{ block.super }} » 
-    {{ language.localname }} » {{ translation_project.project }}
-{% endblock %}
+{% block title %}{{ translation_project.project }} | {{ language.localname }} | {{ block.super }}{% endblock %}
 
-{% block breadcrumb_content %}
-    {{ block.super }} » 
-    {% cache settings.CACHE_TIMEOUT tp_bread directory.id LANGUAGE_CODE %}
-        <span><a href="{{ language.pootle_path|l }}">{{ language.localname }}</a></span> » <span id="projectcrumb"><a href="{{ translation_project.pootle_path|l }}">{{ translation_project.project }}</a></span>
-    {% endcache %}
+{% block breadcrumbs %}
+{{ block.super }}
+{% cache settings.CACHE_TIMEOUT tp_bread directory.id LANGUAGE_CODE %}
+<li><a href="{{ language.pootle_path|l }}">{{ language.localname }}</a></li><li id="projectcrumb"><a href="{{ translation_project.pootle_path|l }}">{{ translation_project.project }}</a></li>
+{% endcache %}
 {% endblock %}
 
 {% block extra_head %}
 <link rel="alternate" type="application/rss+xml" href="{% url pootle_notifications__feed feed_path %}" />
 {% endblock %}
 
-{% block precontent %}
+{% block tabs %}
 {% include "tp_menu.html" %}
 {% endblock %}
 

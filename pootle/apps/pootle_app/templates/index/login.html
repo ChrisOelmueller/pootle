@@ -1,12 +1,10 @@
 {% extends "base.html" %}
 {% load i18n baseurl locale %}
 
-{% block title %}
-{{ block.super }} » {% trans "Login" %}
-{% endblock %}
+{% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
 
-{% block breadcrumb_content %}
-{{ block.super }} » <span>{% trans "Login" %}</span>
+{% block breadcrumbs %}
+{{ block.super }}<li>{% trans "Login" %}</li>
 {% endblock %}
 
 {% block content %}
@@ -39,9 +37,9 @@
 {% endblock content %}
 
 {% block scripts_extra %}
-  <script>
-    $(document).ready(function () {
-        $("#id_username").focus();
-    });
-  </script>
+<script type="text/javascript">
+$(function () {
+  $("#id_username").focus();
+});
+</script>
 {% endblock scripts_extra %}

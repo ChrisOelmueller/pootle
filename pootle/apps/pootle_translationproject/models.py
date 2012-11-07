@@ -39,6 +39,7 @@ from pootle_app.models.permissions import check_permission
 from pootle_language.models import Language
 from pootle_misc.aggregate import group_by_count_extra, max_column
 from pootle_misc.baseurl import l
+from pootle_misc.stats import stats_message, stats_message_raw
 from pootle_misc.util import (getfromcache, dictsum, deletefromcache,
                               get_markup_filter_name, apply_markup_filter)
 from pootle_project.models import Project
@@ -207,12 +208,13 @@ class TranslationProject(models.Model):
             store.update(update_translation=True, update_structure=\
                     not conservative, conservative=conservative)
 
-    def sync(self, conservative=True):
+    def sync(self, conservative=True, skip_missing=False):
         """Sync unsaved work on all stores to disk"""
         stores = self.stores.exclude(file='').filter(state__gte=PARSED)
         for store in stores.iterator():
             store.sync(update_translation=True, update_structure=\
-                    not conservative, conservative=conservative, create=False)
+                    not conservative, conservative=conservative, create=False,
+                    skip_missing=skip_missing)
 
     @getfromcache
     def get_mtime(self):
@@ -570,6 +572,8 @@ class TranslationProject(models.Model):
         stats = store.getquickstats()
         username = user.username
 
+        #message = stats_message_raw("Commit from %s by user %s.")
+
         # Try to append email as well, since some VCS does not allow omitting
         # it (ie. Git).
         if user.is_authenticated() and len(user.email):
@@ -918,19 +922,6 @@ class TranslationProject(models.Model):
             return plural
         else:
             return singular
-
-
-def stats_message(version, stats):
-    """Builds a message of statistics used in VCS actions."""
-    # Translators: 'type' is the type of VCS file: working, remote,
-    # or merged copy.
-    return _(u"%(type)s: %(translated)d of %(total)d messages translated "
-             u"(%(fuzzy)d fuzzy)." % {
-                 'type': version,
-                 'translated': stats.get("translated", 0),
-                 'total': stats.get("total", 0),
-                 'fuzzy': stats.get("fuzzy", 0)
-                })
 
 
 def scan_languages(sender, instance, created=False, raw=False, **kwargs):

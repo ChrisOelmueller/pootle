@@ -1,12 +1,10 @@
 {% extends "base.html" %}
 {% load i18n baseurl %}
 
-{% block title %}
-{{ block.super }} » {% trans "Server Error" %}
-{% endblock %}
+{% block title %}{% trans "Server Error" %} | {{ block.super }}{% endblock %}
 
-{% block breadcrumb_content %}
-{{ block.super }} » <span>{% trans "Server Error" %}</span>
+{% block breadcrumbs %}
+{{ block.super }}<li>{% trans "Server Error" %}</li>
 {% endblock %}
 
 {% block content %}
@@ -17,6 +15,9 @@
   <p class="exception">{{ fserror }}</p>
   {% else %}
   <p class="exception">{{ exception }}</p>
+  {% endif %}
+  {% if request.sentry.id %}
+  <p class="exception">{% blocktrans with ref=request.sentry.id %}If you need assistance, you may refer to this error as <strong>{{ ref }}</strong>.{% endblocktrans %}</p>
   {% endif %}
 </div>
 {% endblock %}

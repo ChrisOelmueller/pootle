@@ -5,6 +5,12 @@
   PTL.search = {
 
     init: function (options) {
+      /* Reusable selectors */
+      this.$fields = $(".js-search-fields");
+      this.$fieldsToggle = $(".js-search-fields-toggle");
+      this.$iconToggle = this.$fieldsToggle.find("i");
+      this.$input = $("#id_search");
+
       /* Default settings */
       this.defaultEnv = "editor";
       this.settings = {
@@ -28,34 +34,34 @@
 
       /* Shortcuts */
       shortcut.add('ctrl+shift+s', function () {
-        $("#id_search").focus().select();
+        PTL.search.$input.focus().select();
       });
       shortcut.add('escape', function () {
-        if ($("#id_search").attr("focused")) {
-          $("#id_search").blur();
+        if (PTL.search.$input.attr("focused")) {
+          PTL.search.$input.blur();
         }
       });
 
       /* Event handlers */
-      $("#id_search").focus(function() {
+      PTL.search.$input.focus(function() {
         $(this).attr("focused", true);
       });
-      $("#id_search").blur(function() {
+      PTL.search.$input.blur(function() {
         $(this).attr("focused", "");
       });
 
       /* Search input text */
-      $('label.inputHint').each(function () {
+      $('.js-input-hint').each(function () {
         var initial,
             search = false,
-            label = $(this),
-            input = $('#' + label.attr('for'));
+            $label = $(this),
+            input = $('#' + $label.attr('for'));
 
         if (input.prop("defaultValue")) {
           initial = input.prop("defaultValue");
           search = true;
         } else {
-          initial = label.hide().text().replace(':', '');
+          initial = $label.hide().text().replace(':', '');
         }
 
         input.focus(function () {
@@ -70,15 +76,11 @@
       });
 
       /* Dropdown toggling */
-      $("a.advancedlink").click(function (event) {
+      PTL.search.$fieldsToggle.click(function (event) {
         event.preventDefault();
-        $("div.advancedsearch").slideToggle();
-      }).toggle(function () {
-        $("img.togglesearch").toggle();
-      }, function () {
-        $("img.togglesearch").toggle();
+        PTL.search.$fields.slideToggle();
+        PTL.search.$iconToggle.toggleClass("icon-down icon-up");
       });
-
     },
 
     /* Parses search text to detect any given fields */
@@ -117,7 +119,7 @@
       } else {
         parsed = encodeURIComponent(parsed);
         // There were no fields specified within the text so we use the dropdown
-        $("div.advancedsearch input:checked").each(function () {
+        PTL.search.$fields.find("input:checked").each(function () {
           searchFields.push($(this).val());
         });
       }

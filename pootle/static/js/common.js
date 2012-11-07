@@ -22,15 +22,15 @@ function initZoom() {
 
   $(document.body).addClass(zoomClassName());
 
-  shortcut.add('ctrl+shift+insert', function () {
+  shortcut.add('ctrl+shift+-', function () {
     zoom(-1);
   });
 
-  shortcut.add('ctrl+shift+home', function () {
+  shortcut.add('ctrl+shift+0', function () {
     zoom(0);
   });
 
-  shortcut.add('ctrl+shift+page_up', function () {
+  shortcut.add('ctrl+shift++', function () {
     zoom(1);
   });
 }
@@ -58,11 +58,8 @@ function zoom(v) {
   $(document.body).removeClass(oldClassName).addClass(zoomClassName());
 }
 
-/*
- * Search control helper
- */
 
-$(document).ready(function ($) {
+$(function ($) {
   /* Collapsing functionality */
   $(document).on("click", ".collapse", function (e) {
     e.preventDefault();
@@ -117,9 +114,15 @@ $(document).ready(function ($) {
   });
 
   /* Overview actions */
-  $(document).on("click", ".js-overview-actions-upload", function (e) {
-    e.preventDefault();
-    $.fancybox("#upload");
+  $("#overview-actions").on("click", ".js-overview-actions-upload",
+    function (e) {
+      e.preventDefault();
+      $.fancybox("#upload");
+  });
+  $("#overview-actions").on("click", ".js-overview-actions-delete-path",
+    function (e) {
+      return confirm(gettext("Are you sure you want to continue?") + "\n" +
+                     gettext("This operation cannot be undone."));
   });
 
   /* Generic toggle */

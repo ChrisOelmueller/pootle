@@ -20,14 +20,13 @@
 
 import sys
 
-from django.utils.translation import ugettext as _
+import django
 
+from django.conf import settings
 from django.shortcuts import render_to_response
 from django.template import RequestContext
-from django.conf import settings
+from django.utils.translation import ugettext as _
 
-# get versions
-import django
 from translate import __version__ as toolkitversion
 from pootle import __version__ as pootleversion
 
@@ -45,7 +44,8 @@ def view(request):
                       'traduction',
                       'traduire',
                       ],
-        'pootle_version': _("Pootle %(pootle_ver)s is powered by Translate Toolkit %(toolkit_ver)s",
+        'pootle_version': _("Pootle %(pootle_ver)s is powered by Translate "
+                            "Toolkit %(toolkit_ver)s",
                             {'pootle_ver': pootleversion.sver,
                              'toolkit_ver': toolkitversion.sver}),
         'version_details': "\n".join([
@@ -55,4 +55,5 @@ def view(request):
         ]),
     }
 
-    return render_to_response('index/about.html', data, context_instance=RequestContext(request))
+    return render_to_response('about/about.html', data,
+                              context_instance=RequestContext(request))

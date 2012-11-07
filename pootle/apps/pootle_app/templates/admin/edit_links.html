@@ -1,5 +1,2 @@
-{% load i18n baseurl %}
-<a id="edit_settings" title="{% trans 'Edit' %}">
-  <img src="{{ "images/pencil.png"|s }}" /></a>
-<a id="show_settings" title="{% trans 'Cancel' %}" style="display: none;">
-  <img src="{{ "images/reject.png"|s }}" /></a>
+{% load i18n %}
+<a class="js-edit-details invisible">{% trans 'Edit' %}</a>

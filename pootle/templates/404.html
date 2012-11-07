@@ -1,12 +1,10 @@
 {% extends "base.html" %}
 {% load i18n baseurl %}
 
-{% block title %}
-{{ block.super }} » {% trans "Page Not Found" %}
-{% endblock %}
+{% block title %}{% trans "Page Not Found" %} | {{ block.super }}{% endblock %}
 
-{% block breadcrumb_content %}
-{{ block.super }} » <span>{% trans "Page Not Found" %}</span>
+{% block breadcrumbs %}
+{{ block.super }}<li>{% trans "Page Not Found" %}</li>
 {% endblock %}
 
 {% block content %}

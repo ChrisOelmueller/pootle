@@ -2,18 +2,13 @@
 {% load i18n baseurl cleanhtml assets %}
 {% get_current_language as LANGUAGE_CODE %}
 
-{% block title %}
-{{ block.super }} » {{ project.name }}
+{% block title %}{{ project.name }} | {{ block.super }}{% endblock %}
+
+{% block breadcrumbs %}
+{{ block.super }}<li><a href="{%filter l%}/projects/{{ project.code }}/{%endfilter%}">{{ project.name }}</a></li>
 {% endblock %}
 
-{% block breadcrumb_content %}
-  {{ block.super }} » 
-  <span><a href="{%filter l%}/projects/{{ project.code }}/{%endfilter%}">{{ project.name }}</a></span>
-{% endblock %}
-
-{% block body.id %}projectindex{% endblock body.id %}
-
-{% block bodyclass %}projectoverview{% endblock %}
+{% block body_id %}projectoverview{% endblock %}
 
 {% block content %}
 <div class="module first">
@@ -41,46 +36,48 @@
     </tbody>
     </table>
   </div>
+
+  {% include "translation_summary_legend.html" %}
 </div>
 
 <div class="module">
-  {% if project.description or user.is_superuser %}
+  {% if project.description or can_edit %}
   <div class="hd">
     <h2>{% trans "Description" %}</h2>
   </div>
 
   <div id="overview-description" class="bd">
-    {% if user.is_superuser or request.permissions.administrate %}
-    {% include "admin/edit_links.html" %}
-    <div class="settings-container js-admin-description" style="display: none;">
-      {% with "edit_settings.html" as form_action %}
-      {% include "admin/general_settings_form.html" %}
-      {% endwith%}
-    </div>
-    {% endif %}
 
+
+    <div id="overview-description-project"
+      class="markup-body{% if can_edit %} js-ctx-meta-desc{% endif %}">
     {% if project.description_html %}
-    <div id="overview-description-project" class="markup-body">
-      {{ project.description_html|safe|clean }}
-    </div>
+      {{ project.description_html|clean }}
+    {% else %}
+      <p class="placeholder muted">{% trans "No description set." %}</p>
     {% endif %}
+    {% if can_edit %}
+      {% include "admin/edit_links.html" %}
+    {% endif %}
+    </div>
+  {% if can_edit %}
+    <div class="settings-container js-edit-ctx-meta-desc" style="display:none;">
+      {% include "admin/general_settings_form.html" with form_action="edit_settings.html" %}
+    </div>
+  {% endif %}
+
   </div>
   {% endif %}
 </div>
 {% endblock content %}
 
 {% block postcontent %}
-<div class="module first clear" lang="{{ LANGUAGE_CODE }}">
-  <div class="bd">
-  {% include "translation_summary_legend.html" %}
-  </div>
-</div>
 {% include "top_contributers_table.html" %}
 {% endblock postcontent %}
 
 {% block scripts_extra %}
 <script type="text/javascript">
-$(document).ready(function() {
+$(function() {
   $("td.stats-name").filter(":not([dir])").bidi();
 });
 </script>

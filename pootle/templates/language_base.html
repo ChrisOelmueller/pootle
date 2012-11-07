@@ -2,19 +2,16 @@
 
 {% load baseurl i18n %}
 
-{% block title %}
-{{ block.super }} » {{ language.name }}
-{% endblock %}
+{% block title %}{{ language.name }} | {{ block.super }}{% endblock %}
 
-{% block breadcrumb_content %}
-    {{ block.super }} » 
-    <span><a href="{% filter l %}/{{ language.code }}/{% endfilter %}">{{ language.name }}</a></span>
+{% block breadcrumbs %}
+{{ block.super }}<li><a href="{% filter l %}/{{ language.code }}/{% endfilter %}">{{ language.name }}</a></li>
 {% endblock %}
 
 {% block extra_head %}
 <link rel="alternate" type="application/rss+xml" href="{% url pootle_notifications__feed feed_path %}" />
 {% endblock %}
 
-{% block precontent %}
+{% block tabs %}
 {% include "language_menu.html" %}
 {% endblock %}

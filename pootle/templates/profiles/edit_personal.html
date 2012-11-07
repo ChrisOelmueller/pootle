@@ -1,15 +1,13 @@
 {% extends "user_profile_base_extended.html"  %}
 {% load i18n %}
  
-{% block title %}
-{{ block.super }} » {% trans "Profile" %}
+{% block title %}{% trans "Profile" %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumbs %}
+{{ block.super }}<li>{% trans "Profile" %}</li>
 {% endblock %}
 
-{% block breadcrumb_content %}
-{{ block.super }} » <span>{% trans "Profile" %}</span>
-{% endblock %}
-
-{% block bodyclass %}profile{% endblock %}
+{% block body_id %}profile{% endblock %}
 
 {% block section_description %}{% trans "Here you can change your personal details. This information will be used in the header of the translation files." %}{% endblock %}
 

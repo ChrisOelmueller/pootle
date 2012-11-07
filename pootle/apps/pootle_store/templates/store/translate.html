@@ -1,15 +1,10 @@
-{% extends "tp_base_extended.html" %}
+{% extends "tp_base.html" %}
 {% load i18n assets render_pager baseurl cache locale search store_tags translation_project_tags %}
 {% get_current_language as LANGUAGE_CODE %}
-{% get_current_language as LANGUAGE_BIDI %}
 
-{% block title %}
-{{ block.super }} » {% trans "Translate" %}
-{% endblock %}
+{% block title %}{% trans "Translate" %} | {{ block.super }}{% endblock %}
 
-{% block body.id %}translatepage{% endblock body.id %}
-
-{% block bodyclass %}tptranslate{% endblock %}
+{% block body_id %}tptranslate{% endblock %}
 
 {% block css %}
 {% cache settings.CACHE_TIMEOUT translate_css user.is_authenticated settings.DEBUG %}
@@ -99,9 +94,8 @@
 {% assets "js_editor" %}
 <script type="text/javascript" src="{{ ASSET_URL }}"></script>
 {% endassets %}
-<script type="text/javascript" src="{% url django.views.i18n.javascript_catalog %}"></script>
 <script type="text/javascript">
-$(document).ready (function() {
+$(function() {
   var options = {};
   {% if request.is_secure %}options.secure = true;{% endif %}
   {% if cansuggest or cantranslate %}

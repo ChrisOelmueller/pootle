@@ -5,12 +5,16 @@
 
 # /docs/
 /docs/_build/
+/docs/icons.rst.inc
 
 # /pootle/assets/*/
 /pootle/assets/
 
 # /pootle/dbs/
 /pootle/dbs/*.db
+
+# /pootle/locale/*/LC_MESSAGES/
+/pootle/locale/*/LC_MESSAGES/
 
 # /pootle/static/
 /pootle/static/.webassets-cache/
@@ -19,9 +23,6 @@
 
 # /pootle/settings/
 /pootle/settings/*-local.conf
-
-# /pootle/mo/
-/pootle/mo/*
 
 # General
 *.bak
@@ -38,3 +39,12 @@
 *.swo
 *.swp
 *~
+
+# Ignore stuff from the 'gh-pages' branch
+assets/
+_layouts/
+_site/
+
+# Build stuff
+dist/
+Pootle.egg-info/

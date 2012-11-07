@@ -2,15 +2,13 @@
 
 {% load assets baseurl i18n %}
 
-{% block title %}
-{{ block.super }} » {% trans "Permissions" %}
+{% block title %}{% trans "Permissions" %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumbs %}
+{{ block.super }}<li>{% trans "Permissions" %}</li>
 {% endblock %}
 
-{% block breadcrumb_content %}
-{{ block.super }} » <span>{% trans "Permissions" %}</span>
-{% endblock %}
-
-{% block bodyclass %}tpadminpermissions{% endblock %}
+{% block body_id %}tpadminpermissions{% endblock %}
 
 {% block section_body %}
 <div class="settings-container centered" lang="{{ LANGUAGE_CODE }}">

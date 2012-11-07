@@ -56,10 +56,10 @@
           <ul class="checks">
           {% for check in unit.get_qualitychecks.iterator %}
           <li class="check">
-            <a lang="en" href="http://translate.sourceforge.net/wiki/toolkit/pofilter_tests#{{ check.name }}" target="_blank">{{ check.display_name }}</a>
+            <a lang="en" href="http://docs.translatehouse.org/projects/translate-toolkit/en/latest/commands/pofilter_tests.html#{{ check.name }}" target="_blank">{{ check.display_name }}</a>
             {% if canreview %}
             <a title="{% trans "Remove quality check" %}" class="js-reject-check"
-               data-check-id="{{ check.id }}"><img src='{{ "images/block.png"|s }}' /></a>
+              data-check-id="{{ check.id }}"><i class="icon-block"></i></a>
             {% endif %}
           </li>
           {% endfor %}
@@ -163,8 +163,8 @@
       </div>
       <div id="extras-bar">
         {% if cantranslate %}<a class="js-editor-comment" tabindex="15">{% trans "Add Comment" %}</a>{% endif %}
-        <a id="show-timeline" href='{{ "/unit/timeline/"|l }}{{ unit.id }}'>{% trans 'Show Timeline' %}</a>
-        <a id="hide-timeline" class="hide">{% trans 'Hide Timeline' %}</a>
+        <a id="js-show-timeline" href='{{ "/unit/timeline/"|l }}{{ unit.id }}'>{% trans 'Show Timeline' %}</a>
+        <a id="js-hide-timeline" class="hide">{% trans 'Hide Timeline' %}</a>
         {% if cantranslate %}
         <div id="editor-comment" class="hide">
           <form id="comment-form" action="{% url pootle_store.views.comment unit.id %}" method="post">
@@ -201,33 +201,39 @@
         <div id="suggestion-{{ sugg.id }}" class="extra-item-block">
           {% for i, target, diff, title in sugg|pluralize_diff_sugg %}
           <div class="extra-item-gravatar">
+            {% if sugg.user %}
             <a href="{{ sugg.user.get_absolute_url }}"><img src="{{ sugg.user|gravatar:24 }}" alt="{{ sugg.user.username }}" width="24" height="24" title="{{ sugg.user }}" /></a>
+            {% else %}
+            <span class="invisible">placeholder</span>
+            {% endif %}
           </div>
           <div class="extra-item-content">
             <div class="extra-item js-editor-copytext" data-action="overwrite">
+              {% block votes %}{% endblock %}
               {% if canreview %}
               <a accesskey="a" class="suggestion-action js-suggestion-accept"
                 data-sugg-id="{{ sugg.id }}">
-                <img src="{{ "images/accept.png"|s }}" dir="{% locale_dir %}"
-                  title="{% trans 'Accept suggestion' %}"/>
+                <i class="icon-accept" dir="{% locale_dir %}"
+                  title="{% trans 'Accept suggestion' %}"></i>
               </a>
               <a accesskey="r" class="suggestion-action js-suggestion-reject"
                 data-sugg-id="{{ sugg.id }}">
-                <img src="{{ "images/reject.png"|s }}" dir="{% locale_dir %}"
-                  title="{% trans 'Reject suggestion' %}"/>
+                <i class="icon-reject" dir="{% locale_dir %}"
+                  title="{% trans 'Reject suggestion' %}"></i>
               </a>
               {% else %}
               {% if user.is_authenticated and profile == sugg.user %}
               <a accesskey="r" class="suggestion-action js-suggestion-reject"
                 data-sugg-id="{{ sugg.id }}">
-                <img src='{{ "images/reject.png"|s }}' dir="{% locale_dir %}"
-                  title="{% trans 'Remove suggestion' %}"/>
+                <i class="icon-reject" dir="{% locale_dir %}"
+                  title="{% trans 'Remove suggestion' %}"></i>
               </a>
               {% endif %}
               {% endif %}
 
               <div id="suggdiff-{{sugg.id}}-{{i}}" class="suggestion-translation" lang="{{ language.code }}" dir="{{ language.get_direction }}"{% if title %} title="{{ title }}"{% endif %}>{{ diff }}</div>
             </div>
+            {% block suggestion_comment %}{% endblock %}
           </div>
           {% endfor %}
         </div>

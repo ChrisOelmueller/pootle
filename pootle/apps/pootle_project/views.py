@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright 2008-2009 Zuza Software Foundation
+# Copyright 2008-2012 Zuza Software Foundation
 #
 # This file is part of Pootle.
 #
@@ -27,6 +27,7 @@ from django.shortcuts import get_object_or_404, render_to_response
 from django.template import loader, RequestContext
 from django.utils.translation import ugettext as _, ungettext
 
+from pootle.i18n.gettext import tr_lang
 from pootle_app.models import Directory
 from pootle_app.models.permissions import (get_matching_permissions,
                                            check_permission)
@@ -37,7 +38,6 @@ from pootle_app.views.language import dispatch
 from pootle_app.views.language.view import get_stats_headings
 from pootle_app.views.language.item_dict import stats_descriptions
 from pootle_app.views.top_stats import gentopstats_project, gentopstats_root
-from pootle.i18n.gettext import tr_lang
 from pootle_language.models import Language
 from pootle_misc.baseurl import l
 from pootle_misc.forms import LiberalModelChoiceField
@@ -95,6 +95,8 @@ def project_language_index(request, project_code):
     if not check_permission('view', request):
         raise PermissionDenied
 
+    can_edit = check_permission('administrate', request)
+
     translation_projects = project.translationproject_set.all()
 
     items = [make_language_item(request, translation_project) \
@@ -120,13 +122,15 @@ def project_language_index(request, project_code):
         'languages': items,
         'topstats': topstats,
         'statsheadings': get_stats_headings(),
+        'can_edit': can_edit,
     }
 
-    if check_permission('administrate', request):
+    if can_edit:
         from pootle_project.forms import DescriptionForm
         templatevars['form'] = DescriptionForm(instance=project)
 
-    return render_to_response('project/project.html', templatevars, context_instance=RequestContext(request))
+    return render_to_response('project/project.html', templatevars,
+                              context_instance=RequestContext(request))
 
 
 @ajax_required
@@ -140,29 +144,41 @@ def project_settings_edit(request, project_code):
 
     from pootle_project.forms import DescriptionForm
     form = DescriptionForm(request.POST, instance=project)
+
     response = {}
+    rcode = 400
+
     if form.is_valid():
         form.save()
-        response = {
-                "intro": form.cleaned_data['description'],
-                "valid": True,
-        }
+        rcode = 200
+
+        if project.description_html:
+            the_html = project.description_html
+        else:
+            the_html = u"".join([
+                u'<p class="placeholder muted">',
+                _(u"No description yet."), u"</p>"
+            ])
+
+        response["description_html"] = the_html
+
     context = {
-            "form": form,
-            "form_action": project.pootle_path + "edit_settings.html",
+        "form": form,
+        "form_action": project.pootle_path + "edit_settings.html",
     }
     t = loader.get_template('admin/general_settings_form.html')
     c = RequestContext(request, context)
     response['form'] = t.render(c)
 
-    return HttpResponse(jsonify(response), mimetype="application/json")
+    return HttpResponse(jsonify(response), status=rcode,
+                        mimetype="application/json")
 
 
 class TranslationProjectFormSet(forms.models.BaseModelFormSet):
 
     def save_existing(self, form, instance, commit=True):
-        result = super(TranslationProjectFormSet, self).\
-                save_existing(form, instance, commit)
+        result = super(TranslationProjectFormSet, self) \
+                .save_existing(form, instance, commit)
         form.process_extra_fields()
 
         return result
@@ -178,12 +194,15 @@ class TranslationProjectFormSet(forms.models.BaseModelFormSet):
 def project_admin(request, project_code):
     """adding and deleting project languages"""
     current_project = Project.objects.get(code=project_code)
-    request.permissions = get_matching_permissions(get_profile(request.user), current_project.directory)
+    request.permissions = get_matching_permissions(get_profile(request.user),
+                                                   current_project.directory)
 
     if not check_permission('administrate', request):
-        raise PermissionDenied(_("You do not have rights to administer this project."))
+        raise PermissionDenied(_("You do not have rights to administer "
+                                 "this project."))
 
-    template_translation_project = current_project.get_template_translationproject()
+    template_translation_project = current_project \
+                                        .get_template_translationproject()
 
 
     class TranslationProjectForm(forms.ModelForm):
@@ -206,11 +225,9 @@ def project_admin(request, project_code):
                     translationproject__project=current_project)
                 )
 
-
         class Meta:
             prefix = "existing_language"
             model = TranslationProject
-
 
         def process_extra_fields(self):
 
@@ -230,7 +247,10 @@ def project_admin(request, project_code):
     model_args['project'] = {'code': current_project.code,
                              'name': current_project.fullname}
 
-    link = lambda instance: '<a href="%s">%s</a>' % (l(instance.pootle_path + 'admin_permissions.html'), instance.language)
+    link = lambda instance: '<a href="%s">%s</a>' % (
+            l(instance.pootle_path + 'admin_permissions.html'),
+            instance.language
+    )
 
     return util.edit(request, 'project/project_admin.html', TranslationProject,
             model_args, link, linkfield="language", queryset=queryset,
@@ -241,7 +261,6 @@ def project_admin(request, project_code):
 
 
 def project_admin_permissions(request, project_code):
-    # Check if the user can access this view
     project = get_object_or_404(Project, code=project_code)
     request.permissions = get_matching_permissions(get_profile(request.user),
                                                    project.directory)
@@ -262,7 +281,6 @@ def project_admin_permissions(request, project_code):
 
 def projects_index(request):
     """page listing all projects"""
-
     request.permissions = get_matching_permissions(get_profile(request.user),
                                                    Directory.objects.root)
 
@@ -275,7 +293,8 @@ def projects_index(request):
         'projects': getprojects(request),
         'topstats': topstats,
         'translationlegend': {'translated': _('Translations are complete'),
-                              'fuzzy': _('Translations need to be checked (they are marked fuzzy)'),
+                              'fuzzy': _('Translations need to be checked '
+                                         '(they are marked fuzzy)'),
                               'untranslated': _('Untranslated')},
         }
 

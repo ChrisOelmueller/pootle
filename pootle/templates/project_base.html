@@ -2,15 +2,12 @@
 
 {% load i18n baseurl %}
 
-{% block title %}
-{{ block.super }} » {% trans "Projects" %}
+{% block title %}{% trans "Projects" %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumbs %}
+{{ block.super }}<li><a href='{{ "/projects/"|l }}'>{% trans "Projects" %}</a></li>
 {% endblock %}
 
-{% block breadcrumb_content %}
-    {{ block.super }} »
-    <span><a href='{{ "/projects/"|l }}'>{% trans "Projects" %}</a></span>
-{% endblock %}
-
-{% block precontent %}
+{% block tabs %}
 {% include "project_menu.html" %}
 {% endblock %}

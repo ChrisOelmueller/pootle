@@ -357,10 +357,8 @@ def translate_page(request):
         'AMAGAMA_URL': settings.AMAGAMA_URL,
         }
 
-    if is_terminology:
-        return render_to_response('store/terms.html', context, context_instance=RequestContext(request))
-    else:
-        return render_to_response('store/translate.html', context, context_instance=RequestContext(request))
+    return render_to_response('store/translate.html', context,
+                              context_instance=RequestContext(request))
 
 
 @get_store_context('view')
@@ -397,7 +395,7 @@ def _build_units_list(units, reverse=False):
              having plural forms, a title for the plural form is also provided.
     """
     return_units = []
-    for unit in units.iterator():
+    for unit in iter(units):
         source_unit = []
         target_unit = []
         for i, source, title in pluralize_source(unit):
@@ -441,17 +439,23 @@ def _build_pager_dict(pager):
            }
 
 
-def _get_index_in_qs(qs, unit):
+def _get_index_in_qs(qs, unit, store=False):
     """Given a queryset ``qs``, returns the position (index) of the unit
-    ``unit`` within that queryset.
+    ``unit`` within that queryset. ``store`` specifies if the queryset is
+    limited to a single store.
 
     :return: Value representing the position of the unit ``unit``.
     :rtype: int
     """
-    return qs.filter(index__lt=unit.index).count()
+    if store:
+        return qs.filter(index__lt=unit.index).count()
+    else:
+        store = unit.store
+        return (qs.filter(store=store, index__lt=unit.index) | \
+                qs.filter(store__pootle_path__lt=store.pootle_path)).count()
 
 
-def get_view_units(request, units_queryset, limit=0):
+def get_view_units(request, units_queryset, store, limit=0):
     """Gets source and target texts excluding the editing unit.
 
     :return: An object in JSON notation that contains the source and target
@@ -481,14 +485,15 @@ def get_view_units(request, units_queryset, limit=0):
         json["meta"] = {"source_lang": tp.project.source_language.code,
                         "source_dir": tp.project.source_language.get_direction(),
                         "target_lang": tp.language.code,
-                        "target_dir": tp.language.get_direction()}
+                        "target_dir": tp.language.get_direction(),
+                        "project_style": tp.project.checkstyle}
 
     # Maybe we are trying to load directly a specific unit, so we have
     # to calculate its page number
     uid = request.GET.get('uid', None)
     if uid:
         current_unit = units_queryset.get(id=uid)
-        preceding = _get_index_in_qs(step_queryset, current_unit)
+        preceding = _get_index_in_qs(step_queryset, current_unit, store)
         page = preceding / limit + 1
     else:
         page = None
@@ -521,7 +526,7 @@ def get_view_units_store(request, store, limit=0):
              texts for units that will be displayed before and after
              unit ``uid``.
     """
-    return get_view_units(request, store.units, limit=limit)
+    return get_view_units(request, store.units, store=True, limit=limit)
 
 
 def _is_filtered(request):

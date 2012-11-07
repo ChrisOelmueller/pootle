@@ -5,19 +5,25 @@
     {% if user == profile.user %}
         {{ block.super }}
     {% else %}
-        {{ settings.TITLE }} » {% trans "Users" %} » {{ profile.user }}
+        {{ profile.user }} | {% trans "Users" %} | {{ settings.TITLE }}
     {% endif %}
 {% endblock %}
 
-{% block breadcrumb_content %}
+{% block body_id %}dashboard{% endblock %}
+
+{% block breadcrumbs %}
     {% if user == profile.user %}
         {{ block.super }}
     {% else %}
-        » <span>{% trans "Users" %}</span> » <span>{{ profile.user }}</span>
+        <li>{% trans "Users" %}</li><li>{{ profile.user }}</li>
     {% endif %}
 {% endblock %}
 
-{% block bodyclass %}dashboard{% endblock %}
+{% block header_tabs_block %}
+{% if user == profile.user %}
+  {{ block.super }}
+{% endif %}
+{% endblock %}
 
 {% block content %}
 <div class="module first" lang="{{ LANGUAGE_CODE }}">
@@ -78,6 +84,3 @@
 {% include "admin/rss_widget.html" %}
 {% endif %}
 {% endblock %}
-
-
-

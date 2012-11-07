@@ -1,11 +1,8 @@
-{% load i18n baseurl %}
-
-{% block translation_summary_legend %}
-<!-- translation_summary_legend -->
-<div id="translationsummarylegend">
-    <div><img src='{{ "images/bar-translated.png"|s }}' alt="" />{% trans 'Translated' %}</div>
-    <div><img src='{{ "images/bar-fuzzy.png"|s }}' alt="" />{% trans 'Needs review' %}</div>
-    <div><img src='{{ "images/bar-untranslated.png"|s }}' alt="" />{% trans 'Untranslated' %}</div>
+{% load i18n %}
+<div class="bd">
+  <ul id="summary-legend" class="icons">
+    <li><i class="bar-translated"></i> {% trans 'Translated' %}</li>
+    <li><i class="bar-fuzzy"></i> {% trans 'Needs review' %}</li>
+    <li><i class="bar-untranslated"></i> {% trans 'Untranslated' %}</li>
+  </ul>
 </div>
-<!-- /translation_summary_legend -->
-{% endblock translation_summary_legend %}

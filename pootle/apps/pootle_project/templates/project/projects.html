@@ -4,15 +4,11 @@
 
 {% get_current_language as LANGUAGE_CODE %}
 
-{% block title %}
-{{ block.super }}: {% trans "Projects" %}
-{% endblock %}
+{% block title %}{% trans "Projects" %} | {{ block.super }}{% endblock %}
 
-{% block breadcrumb_content %}
-{{ block.super }} » <span>{% trans "Projects" %}</span>
+{% block breadcrumbs %}
+{{ block.super }}<li>{% trans "Projects" %}</li>
 {% endblock %}
-
-{% block body.id %}projectsindex{% endblock body.id %}
 
 {% block content %}
 <div class="module first" lang="{{ LANGUAGE_CODE }}">
@@ -38,14 +34,11 @@
       {% endfor %}
     </table>
   </div>
+
+  {% include "translation_summary_legend.html" %}
 </div>
 {% endblock content %}
 
 {% block postcontent %}
-<div class="module first clear" lang="{{ LANGUAGE_CODE }}">
-    <div class="bd">
-    {% include "translation_summary_legend.html" %}
-    </div>
-</div>
 {% include "top_contributers_table.html" %}
 {% endblock postcontent %}

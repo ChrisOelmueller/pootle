@@ -3,10 +3,10 @@
 File formats
 ============
 
-Pootle supports many file formats through the powerful *Translate Toolkit*.
-The Toolkit also provides several converters for other :doc:`formats
-<toolkit:formats>` that will allow you to host a lot of translatable content on
-Pootle.
+Pootle supports :ref:`many file formats <toolkit:formats>` through the powerful
+*Translate Toolkit* API.  The Toolkit also provides several :ref:`format
+converters <toolkit:commands#converters>` for other formats, this will allow
+you to host a lot of translatable content on Pootle.
 
 All these formats can be downloaded for offline use/or translation (for example
 in Virtaal). We recommend *Virtaal* for offline translation. They can also be
@@ -21,18 +21,18 @@ Bilingual formats
 These formats are translation files that include the source and target language
 in one file.
 
-- :doc:`Gettext PO <toolkit:po>`
+- :ref:`Gettext PO <toolkit:po>`
 
-- :doc:`XLIFF <toolkit:xliff>`
+- :ref:`XLIFF <toolkit:xliff>`
 
 
 .. versionadded:: 2.0.3
 
-- :doc:`Qt TS <toolkit:ts>`
+- :ref:`Qt TS <toolkit:ts>`
 
-- :doc:`TBX <toolkit:tbx>`
+- :ref:`TBX <toolkit:tbx>`
 
-- :doc:`TMX <toolkit:tmx>`
+- :ref:`TMX <toolkit:tmx>`
 
 
 .. _formats#monolingual:
@@ -45,10 +45,10 @@ Monolingual formats
 These files contain only one language in the file. Pootle supports formats
 without conversion.
 
-- :doc:`Java properties <toolkit:properties>`
-- :doc:`Mac OSX strings <toolkit:strings>`
-- :doc:`PHP arrays <toolkit:php>`
-- :doc:`Subtitles <toolkit:subtitles>` in many formats
+- :ref:`Java properties <toolkit:properties>`
+- :ref:`Mac OSX strings <toolkit:strings>`
+- :ref:`PHP arrays <toolkit:php>`
+- :ref:`Subtitles <toolkit:subtitles>` in many formats
 
 Monolingual files need special attention in order to provide translators with
 good workflow and to assist to perform good translation.  Read more in the
@@ -59,10 +59,11 @@ that for monolingual projects a translation template is required. Pootle cannot
 meaningfully import strings from monolingual files unless the original text is
 present.
 
-Either the source language or the special templates language must be added to
-the project and their files uploaded before other languages are added. Files
-found in either will be considered template files (in the case where both
-templates and source language exist templates will be used).
+Either the source language or the :ref:`special Templates language
+<templates#the_templates_language>` must be added to the project and their
+files uploaded before other languages are added. Files found in either will be
+considered template files (in the case where both templates and source language
+exist templates will be used).
 
 What users will see when translating monolingual file is a matching between
 strings in the templates file and strings in the target language files. The

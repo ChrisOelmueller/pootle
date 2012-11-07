@@ -134,7 +134,7 @@ def update_against_templates(request, translation_project):
 @util.has_permission('administrate')
 def delete_path_obj(request, translation_project, dir_path, filename=None):
     """Deletes the path objects under `dir_path` (+ `filename`) from the
-    filesystem."""
+    filesystem, including `dir_path` in case it's not a translation project."""
     current_path = translation_project.directory.pootle_path + dir_path
 
     try:
@@ -157,21 +157,47 @@ def delete_path_obj(request, translation_project, dir_path, filename=None):
             store.delete()
 
         if directory:
+            directory_is_tp = directory.is_translationproject()
+
             # First remove children directories from the DB
             for child_dir in directory.child_dirs.iterator():
                 child_dir.delete()
 
-            # Then the current directory
-            directory.delete()
+            # Then the current directory (only if we are not in the root of the
+            # translation project)
+            if not directory_is_tp:
+                directory.delete()
 
-            # And finally all the directory tree from the filesystem
-            import shutil
-            po_dir = unicode(settings.PODIRECTORY)
-            shutil.rmtree(os.path.join(po_dir, directory.get_real_path()))
+            # And finally all the directory tree from the filesystem (excluding
+            # the root of the translation project)
+            try:
+                import shutil
+                po_dir = unicode(settings.PODIRECTORY)
+                root_dir = os.path.join(po_dir, directory.get_real_path())
 
-        messages.success(request, _("Files have been deleted."))
+                if directory_is_tp:
+                    children = [os.path.join(root_dir, child) \
+                                for child in os.listdir(root_dir)]
+                    child_dirs = filter(os.path.isdir, children)
+                    for child_dir in child_dirs:
+                        shutil.rmtree(child_dir)
+                else:
+                    shutil.rmtree(root_dir)
+            except OSError:
+                messages.warning(request, _("Symbolic link hasn't been "
+                                            "removed from the filesystem."))
+
+        if directory:
+            messages.success(request, _("Directory and its containing files "
+                                        "have been deleted."))
+        else:
+            messages.success(request, _("File has been deleted."))
     except:
-        messages.error(request, _("Error while trying to delete files."))
+        if directory:
+            messages.error(request, _("Error while trying to delete "
+                                      "directory."))
+        else:
+            messages.error(request, _("Error while trying to delete file."))
 
     language = translation_project.language.code
     project = translation_project.project.code
@@ -186,6 +212,7 @@ class ProjectIndexView(view_handler.View):
             store=None):
         user_profile = get_profile(request.user)
         tp_dir = translation_project.directory
+        can_edit = check_permission('administrate', request)
 
         project = translation_project.project
         language = translation_project.language
@@ -214,6 +241,7 @@ class ProjectIndexView(view_handler.View):
             'topstats': gentopstats_translation_project(translation_project),
             'feed_path': directory.pootle_path[1:],
             'action_groups': action_groups(request, path_obj),
+            'can_edit': can_edit,
         })
 
         if store is not None:
@@ -226,7 +254,7 @@ class ProjectIndexView(view_handler.View):
                                          directory)
             })
 
-        if check_permission('administrate', request):
+        if can_edit:
             from pootle_translationproject.forms import DescriptionForm
             template_vars['form'] = DescriptionForm(instance=translation_project)
 
@@ -302,22 +330,34 @@ def edit_settings(request, translation_project):
 
     from pootle_translationproject.forms import DescriptionForm
     form = DescriptionForm(request.POST, instance=translation_project)
+
     response = {}
+    rcode = 400
+
     if form.is_valid():
         form.save()
-        response = {
-                "intro": form.cleaned_data['description'],
-                "valid": True,
-        }
+        rcode = 200
+
+        if translation_project.description_html:
+            the_html = translation_project.description_html
+        else:
+            the_html = u"".join([
+                u'<p class="placeholder muted">',
+                _(u"No description yet."), u"</p>"
+            ])
+
+        response["description_html"] = the_html
+
     context = {
-            "form": form,
-            "form_action": translation_project.pootle_path + "edit_settings.html",
+        "form": form,
+        "form_action": translation_project.pootle_path + "edit_settings.html",
     }
     t = loader.get_template('admin/general_settings_form.html')
     c = RequestContext(request, context)
     response['form'] = t.render(c)
 
-    return HttpResponse(jsonify(response), mimetype="application/json")
+    return HttpResponse(jsonify(response), status=rcode,
+                        mimetype="application/json")
 
 
 @get_translation_project
@@ -330,7 +370,9 @@ def export_zip(request, translation_project, file_path):
     translation_project.sync()
     pootle_path = translation_project.pootle_path + (file_path or '')
 
-    archivename = '%s-%s' % (translation_project.project.code, translation_project.language.code)
+    archivename = '%s-%s' % (
+        translation_project.project.code, translation_project.language.code
+    )
 
     if file_path.endswith('/'):
         file_path = file_path[:-1]
@@ -339,18 +381,22 @@ def export_zip(request, translation_project, file_path):
         archivename += '-' + file_path.replace('/', '-')
 
     archivename += '.zip'
-    export_path = os.path.join('POOTLE_EXPORT', translation_project.real_path, archivename)
+    export_path = os.path.join('POOTLE_EXPORT', translation_project.real_path,
+                               archivename)
     abs_export_path = absolute_real_path(export_path)
 
     key = iri_to_uri("%s:export_zip" % pootle_path)
     last_export = cache.get(key)
 
-    if not (last_export and last_export == translation_project.get_mtime() and os.path.isfile(abs_export_path)):
+    if (not (last_export and last_export == translation_project.get_mtime() and
+        os.path.isfile(abs_export_path))):
         ensure_target_dir_exists(abs_export_path)
 
-        stores = Store.objects.filter(pootle_path__startswith=pootle_path).exclude(file='')
+        stores = Store.objects.filter(pootle_path__startswith=pootle_path) \
+                              .exclude(file='')
         translation_project.get_archive(stores, abs_export_path)
-        cache.set(key, translation_project.get_mtime(), settings.OBJECT_CACHE_TIMEOUT)
+        cache.set(key, translation_project.get_mtime(),
+                  settings.OBJECT_CACHE_TIMEOUT)
 
     return redirect('/export/' + export_path)
 
@@ -392,11 +438,11 @@ def host_to_unix_path(p):
     return '/'.join(p.split(os.sep))
 
 
-
 def get_upload_path(translation_project, relative_root_dir, local_filename):
     """gets the path of a translation file being uploaded securely,
     creating directories as neccessary"""
-    dir_path = os.path.join(translation_project.real_path, unix_to_host_path(relative_root_dir))
+    dir_path = os.path.join(translation_project.real_path,
+                            unix_to_host_path(relative_root_dir))
 
     return relative_real_path(os.path.join(dir_path, local_filename))
 
@@ -412,18 +458,24 @@ def get_local_filename(translation_project, upload_filename):
 
     # check if name is valid
 
-    if os.path.basename(local_filename) != local_filename or local_filename.startswith("."):
+    if (os.path.basename(local_filename) != local_filename or
+        local_filename.startswith(".")):
         raise ValueError(_("Invalid/insecure file name: %s", local_filename))
+
     # XXX: Leakage of the project layout information outside of
     # project_tree.py! The rest of Pootle shouldn't have to care
     # whether something is GNU-style or not.
-    if translation_project.file_style == "gnu" and not translation_project.is_template_project:
+    if (translation_project.file_style == "gnu" and
+        not translation_project.is_template_project):
         if not direct_language_match_filename(translation_project.language.code, local_filename):
-            raise ValueError(_("Invalid GNU-style file name: %(local_filename)s. It must match '%(langcode)s.%(filetype)s'.",
+            raise ValueError(_("Invalid GNU-style file name: "
+                               "%(local_filename)s. It must match "
+                               "'%(langcode)s.%(filetype)s'.",
                              {'local_filename': local_filename,
                               'langcode': translation_project.language.code,
                               'filetype': translation_project.project.localfiletype,
                               }))
+
     return local_filename
 
 
@@ -460,7 +512,8 @@ def unzip_external(request, directory, django_file, overwrite):
 
             for fname in files:
                 # Read the contents of a file...
-                newfile = StringIO.StringIO(open(os.path.join(basedir, fname), 'rb').read())
+                fcontents = open(os.path.join(basedir, fname), 'rb').read()
+                newfile = StringIO.StringIO(fcontents)
                 newfile.name = os.path.basename(fname)
                 # Get the filesystem path relative to the temporary directory
                 subdir = host_to_unix_path(basedir[len(prefix)+len(os.sep):])
@@ -550,7 +603,8 @@ def overwrite_file(request, relative_root_dir, django_file, upload_path):
             try:
                 #FIXME: we need a way to delay reparsing
                 store = Store.objects.get(file=upload_path)
-                store.update(update_structure=True, update_translation=True, conservative=False)
+                store.update(update_structure=True, update_translation=True,
+                             conservative=False)
             except Store.DoesNotExist:
                 # newfile, delay parsing
                 pass
@@ -563,7 +617,8 @@ def overwrite_file(request, relative_root_dir, django_file, upload_path):
         # If the extension of the uploaded file does not match the
         # extension of the current translation project, we create
         # an empty file (with the right extension)...
-        empty_store = factory.getobject(absolute_real_path(upload_path), classes=factory_classes)
+        empty_store = factory.getobject(absolute_real_path(upload_path),
+                                        classes=factory_classes)
         # And save it...
         empty_store.save()
         request.translation_project.scan_files()
@@ -571,8 +626,10 @@ def overwrite_file(request, relative_root_dir, django_file, upload_path):
         # uploaded file into it.
         store = Store.objects.get(file=upload_path)
         #FIXME: maybe there is a faster way to do this?
-        store.update(update_structure=True, update_translation=True, conservative=False, store=newstore)
-        store.sync(update_structure=True, update_translation=True, conservative=False)
+        store.update(update_structure=True, update_translation=True,
+                     conservative=False, store=newstore)
+        store.sync(update_structure=True, update_translation=True,
+                   conservative=False)
 
 
 def upload_file(request, directory, django_file, overwrite, store=None):
@@ -609,7 +666,8 @@ def upload_file(request, directory, django_file, overwrite, store=None):
         upload_path = get_upload_path(translation_project, relative_root_dir,
                                       store.name)
     else:
-        local_filename = get_local_filename(translation_project, django_file.name)
+        local_filename = get_local_filename(translation_project,
+                                            django_file.name)
         pootle_path = directory.pootle_path + local_filename
         # The full filesystem path to 'local_filename'
         upload_path = get_upload_path(translation_project, relative_root_dir,
@@ -619,21 +677,30 @@ def upload_file(request, directory, django_file, overwrite, store=None):
         except Store.DoesNotExist:
             store = None
 
-    if store is not None and overwrite == 'overwrite' and not check_permission('overwrite', request):
-        raise PermissionDenied(_("You do not have rights to overwrite files here."))
+    if (store is not None and overwrite == 'overwrite' and
+        not check_permission('overwrite', request)):
+        raise PermissionDenied(_("You do not have rights to overwrite "
+                                 "files here."))
+
     if store is None and not check_permission('administrate', request):
-        raise PermissionDenied(_("You do not have rights to upload new files here."))
+        raise PermissionDenied(_("You do not have rights to upload new "
+                                 "files here."))
+
     if overwrite == 'merge' and not check_permission('translate', request):
-        raise PermissionDenied(_("You do not have rights to upload files here."))
+        raise PermissionDenied(_("You do not have rights to upload "
+                                 "files here."))
+
     if overwrite == 'suggest' and not check_permission('suggest', request):
-        raise PermissionDenied(_("You do not have rights to upload files here."))
+        raise PermissionDenied(_("You do not have rights to upload "
+                                 "files here."))
 
     if store is None or (overwrite == 'overwrite' and store.file != ""):
         overwrite_file(request, relative_root_dir, django_file, upload_path)
         return
 
     if store.file and store.file.read() == django_file.read():
-        logging.debug(u"identical file uploaded to %s, not merging", store.pootle_path)
+        logging.debug(u"identical file uploaded to %s, not merging",
+                      store.pootle_path)
         return
 
     django_file.seek(0)
@@ -657,16 +724,13 @@ class UpdateHandler(view_handler.Handler):
 
     actions = [('do_update', _('Update all from version control'))]
 
-
     class Form(forms.Form):
         pass
-
 
     @classmethod
     def must_display(cls, request, *args, **kwargs):
         return check_permission('commit', request) and \
             hasversioning(request.translation_project.abs_real_path)
-
 
     def do_update(self, request, translation_project, directory, store):
         translation_project.update_project(request)
@@ -683,9 +747,7 @@ class UploadHandler(view_handler.Handler):
                check_permission('suggest', request) or \
                check_permission('overwrite', request)
 
-
     def __init__(self, request, data=None, files=None):
-
         choices = []
 
         if check_permission('overwrite', request):
@@ -719,6 +781,7 @@ class UploadHandler(view_handler.Handler):
         class UploadForm(forms.Form):
 
             file = forms.FileField(required=True, label=_('File'))
+
             if check_permission('translate', request):
                 initial = 'merge'
             else:
@@ -751,7 +814,6 @@ class UploadHandler(view_handler.Handler):
 
         self.form.allow_overwrite = check_permission('overwrite', request)
         self.form.title = _("Upload File")
-
 
     def do_upload(self, request, translation_project, directory, store):
 

@@ -6,20 +6,29 @@
 <link rel="alternate" type="application/rss+xml" href="{% url pootle_notifications__feed "" %}" />
 {% endblock %}
 
-{% block body.id %}frontpage{% endblock body.id %}
+{% block header_block %}{% endblock %}
 
 {% block precontent %}
-{% if user.is_superuser %}
-  {% include "admin/edit_links.html" %}
-  <div class="settings-container js-admin-description" style="display: none;">
-  {% with "edit_settings.html" as form_action %}
-  {% include "admin/general_settings_form.html" %}
-  {% endwith%}
+{% if description or can_edit %}
+  <div class="markup-body{% if can_edit %} js-ctx-meta-desc{% endif %}">
+    {% if description %}
+      {# The surrounding div tag is kept for convenience #}
+      <div>
+      {{ description|clean }}
+      </div>
+    {% else %}
+      <p class="placeholder muted">{% trans "No description set." %}</p>
+    {% endif %}
+    {% if can_edit %}
+      {% include "admin/edit_links.html" %}
+    {% endif %}
   </div>
 {% endif %}
-<div class="markup-body">
-{{ description|safe|clean }}
-</div>
+{% if can_edit %}
+  <div class="settings-container js-edit-ctx-meta-desc" style="display:none;">
+    {% include "admin/general_settings_form.html" with form_action="/admin/edit_settings.html" %}
+  </div>
+{% endif %}
 {% endblock precontent %}
 
 {% block content %}
@@ -35,7 +44,7 @@
         <th id="js-stats-activity">{% trans 'Last Activity' %}</th>
       </tr>
       {% for item in languages %}
-      {% if item.stats.total != 0 %}
+      {% if item.stats.total.words != 0 %}
       <tr class="{% cycle 'even' 'odd' %}">
         <td class="language"><a href="{% filter l %}/{{ item.code }}/{% endfilter %}">{{ item.name }}</a></td>
         <td>
@@ -48,6 +57,8 @@
       {% endfor %}
     </table>
   </div>
+
+  {% include "translation_summary_legend.html" %}
 </div>
 
 <div class="module" lang="{{ LANGUAGE_CODE }}">
@@ -81,13 +92,7 @@
   <div class="hd"><h2>{% trans 'Latest News' %}</h2></div>
   <div class="bd">
     {% render_latest_news "" 5 %}
-    <p class="subscribe"><a href="{% url pootle_notifications__feed "" %}">{% trans "Subscribe to the RSS feed." %}</a></p>
-  </div>
-</div>
-
-<div class="module first clear" lang="{{ LANGUAGE_CODE }}">
-  <div class="bd">
-  {% include "translation_summary_legend.html" %}
+    <p class="subscribe"><a href="{% url pootle_notifications__feed "" %}"><i class="icon-feed"></i> {% trans "Subscribe to the RSS feed." %}</a></p>
   </div>
 </div>
 
@@ -96,7 +101,7 @@
 
 {% block scripts_extra %}
 <script type="text/javascript">
-$(document).ready(function() {
+$(function() {
   $(".markup-body, li.newsitem, .newsitem address, .newsitem blockcode, .newsitem blockquote, .newsitem :header, .newsitem p, .newsitem pre, .newsitem li, .newsitem dt, .newsitem dd, .newsitem ul, .newsitem ol, .newsitem dl, td.language").filter(":not([dir])").bidi();
 });
 </script>

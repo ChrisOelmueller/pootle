@@ -1,12 +1,10 @@
 {% extends "base.html" %}
 {% load i18n baseurl cache legalpages locale %}
 
-{% block title %}
-{{ block.super }} » {% trans "Register" %}
-{% endblock %}
+{% block title %}{% trans "Register" %} | {{ block.super }}{% endblock %}
 
-{% block breadcrumb_content %}
-{{ block.super }} » <span>{% trans "Register" %}</span>
+{% block breadcrumbs %}
+{{ block.super }}<li>{% trans "Register" %}</li>
 {% endblock %}
  
 {% block content %}
@@ -44,7 +42,7 @@
     <p>{% trans "Make sure to read the following:" %}</p>
     <ul>
     {% for lp in legalpages %}
-    <li><a href="{{ lp.get_absolute_url }}" class="fancybox{% if lp.url %} external{% endif %}">{{ lp.localized_title }}</a></li>
+    <li><a href="{{ lp.get_absolute_url }}" class="fancybox">{% if lp.url %}<i class="icon-external-link"></i> {% endif %}{{ lp.localized_title }}</a></li>
     {% endfor %}
     </ul>
     {% endif %}
@@ -61,9 +59,9 @@
 {% endblock %}
 
 {% block scripts_extra %}
-  <script>
-    $(document).ready(function () {
-        $("#id_username").focus();
-    });
-  </script>
+<script type="text/javascript">
+$(function () {
+  $("#id_username").focus();
+});
+</script>
 {% endblock scripts_extra %}

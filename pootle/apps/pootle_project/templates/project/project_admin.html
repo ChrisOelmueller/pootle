@@ -4,12 +4,10 @@
 
 {% get_current_language as LANGUAGE_CODE %}
 
-{% block title %}
-{{ block.super }} » {{ project.name }} » {% trans "Administrate" %}
-{% endblock %}
+{% block title %}{% trans "Administrate" %} | {{ project.name }} | {{ block.super }}{% endblock %}
 
-{% block breadcrumb_content %}
-  {{ block.super }} » <span><a href="{% filter l %}/projects/{{ project.code }}/{% endfilter %}">{{ project.name }}</a></span> » <span>{% trans "Administrate" %}</span>
+{% block breadcrumbs %}
+{{ block.super }}<li><a href="{% filter l %}/projects/{{ project.code }}/{% endfilter %}">{{ project.name }}</a></li><li>{% trans "Administrate" %}</li>
 {% endblock %}
 
 {% block css %}
@@ -19,7 +17,7 @@
 {% endassets %}
 {% endblock %}
 
-{% block bodyclass %}projectadmin{% endblock %}
+{% block body_id %}projectadmin{% endblock %}
 
 {% block content %}
 <div class="settings-container centered" lang="{{ LANGUAGE_CODE }}">

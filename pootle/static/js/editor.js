@@ -128,10 +128,10 @@
     $(document).on("click", "input.previous, input.next", this.gotoPrevNext);
     $(document).on("click", ".js-suggestion-reject", this.rejectSuggestion);
     $(document).on("click", ".js-suggestion-accept", this.acceptSuggestion);
-    $(document).on("click", "#suggestions .clearvote", this.clearVote);
-    $(document).on("click", "#suggestions .voteup", this.voteUp);
-    $(document).on("click", "#show-timeline", this.showTimeline);
-    $(document).on("click", "#hide-timeline", this.hideTimeline);
+    $(document).on("click", ".js-vote-clear", this.clearVote);
+    $(document).on("click", ".js-vote-up", this.voteUp);
+    $(document).on("click", "#js-show-timeline", this.showTimeline);
+    $(document).on("click", "#js-hide-timeline", this.hideTimeline);
     $(document).on("click", "#translate-checks-block .js-reject-check", this.rejectCheck);
 
     /* Filtering */
@@ -319,7 +319,7 @@
         if (PTL.editor.filter == "checks") {
           // if the checks selector is empty (i.e. the 'change' event was not fired
           // because the selection did not change), force the update to populate the selector
-          if ($("#filter-checks").length == 0) {
+          if (!$("#filter-checks").length) {
             PTL.editor.filterStatus();
           }
           $("#filter-checks select [value='" + PTL.editor.checks[0] + "']").attr("selected", "selected");
@@ -334,7 +334,7 @@
             PTL.editor.searchFields = ["source", "target"];
           }
 
-          $("div.advancedsearch input").each(function () {
+          $(".js-search-fields input").each(function () {
             if ($.inArray($(this).val(), PTL.editor.searchFields) >= 0) {
               $(this).attr("checked", "checked");
             } else {
@@ -1627,9 +1627,9 @@
 
     // The results might already be there from earlier:
     if ($("#timeline-results").length) {
-      $("#hide-timeline").show();
+      $("#js-hide-timeline").show();
       $("#timeline-results").slideDown(1000, 'easeOutQuad');
-      $("#show-timeline").hide();
+      $("#js-show-timeline").hide();
       return;
     }
 
@@ -1649,18 +1649,16 @@
       success: function (data) {
         var uid = data.uid;
 
-        if (data.timeline) {
-          if (uid == PTL.editor.activeUid) {
-            if ($("#translator-comment").length) {
-              $(data.timeline).hide().appendTo("#translator-comment")
-                              .slideDown(1000, 'easeOutQuad');
-            } else {
-              $(data.timeline).hide().prependTo("#extras-container")
-                              .slideDown(1000, 'easeOutQuad');
-            }
-            $("#show-timeline").hide();
-            $("#hide-timeline").show();
+        if (data.timeline && uid === PTL.editor.activeUid) {
+          if ($("#translator-comment").length) {
+            $(data.timeline).hide().appendTo("#translator-comment")
+                            .slideDown(1000, 'easeOutQuad');
+          } else {
+            $(data.timeline).hide().prependTo("#extras-container")
+                            .slideDown(1000, 'easeOutQuad');
           }
+          $("#js-show-timeline").hide();
+          $("#js-hide-timeline").show();
         }
       },
       beforeSend: function () {
@@ -1675,9 +1673,9 @@
 
  /* Hide the timeline panel */
   hideTimeline: function (e) {
-    $("#hide-timeline").hide();
+    $("#js-hide-timeline").hide();
     $("#timeline-results").slideUp(1000, 'easeOutQuad');
-    $("#show-timeline").show();
+    $("#js-show-timeline").show();
   },
 
 
@@ -1712,9 +1710,19 @@
   getTMUnits: function () {
     var src = this.meta.source_lang,
         tgt = this.meta.target_lang,
-        stext = $($("input[id^=id_source_f_]").get(0)).val(),
+        sText = $($("input[id^=id_source_f_]").get(0)).val(),
+        pStyle = this.meta.project_style,
         tmUrl = this.settings.tmUrl + src + "/" + tgt +
-          "/unit/?source=" + encodeURIComponent(stext) + "&jsoncallback=?";
+          "/unit/?source=" + encodeURIComponent(sText) + "&jsoncallback=?";
+
+    if (!sText.length) {
+        // No use in looking up an empty string
+        return;
+    }
+
+    if (pStyle.length && pStyle != "standard") {
+        tmUrl += '&style=' + this.meta.project_style;
+    }
 
     // Always abort previous requests so we only get results for the
     // current unit
@@ -1730,7 +1738,7 @@
       success: function (data) {
         var uid = this.callback.slice(6);
 
-        if (uid == PTL.editor.activeUid && data.length > 0) {
+        if (uid == PTL.editor.activeUid && data.length) {
           var filtered = PTL.editor.filterTMResults(data),
               name = gettext("amaGama server"),
               tm = PTL.editor.tmpl.tm($, {data: {meta: PTL.editor.meta,
@@ -1810,8 +1818,8 @@
   /* Clears the vote for a specific suggestion */
   clearVote: function (e) {
     e.stopPropagation(); //we don't want to trigger a click on the text below
-    var element = $(this);
-        voteId = element.siblings("input.voteid").val(),
+    var element = $(this),
+        voteId = element.data("vote-id"),
         url = l('/vote/clear/') + voteId;
 
     element.fadeTo(200, 0.01); //instead of fadeOut that will cause layout changes
@@ -1822,7 +1830,7 @@
       dataType: 'json',
       success: function (data) {
         element.hide();
-        element.siblings("#suggestions .voteup").fadeTo(200, 1);
+        element.siblings(".js-vote-up").fadeTo(200, 1);
       },
       error: function (xhr, s) {
         PTL.editor.error(xhr, s);
@@ -1834,11 +1842,10 @@
 
   /* Votes for a specific suggestion */
   voteUp: function (e) {
-    e.stopPropagation(); //we don't want to trigger a click on the text below
-    var element = $(this);
-        suggId = element.siblings("input.suggid").val(),
-        uid = $('.translate-container #id_id').val(),
-        url = l('/vote/up/') + uid + '/' + suggId;
+    e.stopPropagation();
+    var element = $(this),
+        suggId = element.siblings("[data-sugg-id]").data("sugg-id"),
+        url = l('/vote/up/') + PTL.editor.activeUid + '/' + suggId;
 
     element.fadeTo(200, 0.01); //instead of fadeOut that will cause layout changes
     $.ajax({
@@ -1847,9 +1854,9 @@
       data: {'up': 1},
       dataType: 'json',
       success: function (data) {
-        element.siblings("input.voteid").attr("value", data.voteid);
+        element.siblings("[data-vote-id]").data("vote-id", data.voteid);
         element.hide();
-        element.siblings("#suggestions .clearvote").fadeTo(200, 1);
+        element.siblings(".js-vote-clear").fadeTo(200, 1);
       },
       error: function (xhr, s) {
         PTL.editor.error(xhr, s);
@@ -1918,9 +1925,9 @@
 
 
   /* Adds a new MT service button in the editor toolbar */
-  addMTButton: function (container, aClass, imgFn, tooltip) {
+  addMTButton: function (container, aClass, tooltip) {
       var btn = '<a class="translate-mt ' + aClass + '">';
-      btn += '<img src="' + imgFn + '" title="' + tooltip + '" /></a>';
+      btn += '<i class="icon-' + aClass+ '" title="' + tooltip + '"><i/></a>';
       $(container).first().prepend(btn);
   },
 
@@ -1944,7 +1951,6 @@
         if (ok) {
           _this.addMTButton(this,
             provider.buttonClassName,
-            provider.imageUri,
             provider.hint + ' (' + source.toUpperCase() + '&rarr;' + provider.targetLang.toUpperCase() + ')');
         }
       });
@@ -2032,9 +2038,9 @@
    */
 
   /* Adds a new Lookup button in the editor toolbar */
-  addLookupButton: function (container, aClass, imgFn, tooltip) {
+  addLookupButton: function (container, aClass, tooltip) {
     var btn = '<a class="translate-lookup iframe ' + aClass + '">';
-    btn += '<img src="' + imgFn + '" title="' + tooltip + '" /></a>';
+    btn += '<i class="icon-' + aClass + '" title="' + tooltip + '"></i></a>';
     $(container).first().prepend(btn);
   },
 
@@ -2049,7 +2055,6 @@
 
     _this.addLookupButton(this,
       provider.buttonClassName,
-      provider.imageUri,
       provider.hint + ' (' + source.toUpperCase() + ')');
     });
   },

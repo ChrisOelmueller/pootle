@@ -28,6 +28,21 @@ For documenting several things, Pootle defines custom Sphinx roles.
 
   To link to a setting, use ``:setting:`PODIRECTORY```.
 
+- Icons::
+
+    Some reference to |icon:some-icon| in the text.
+
+  This allows you to easily add inline images of icons used in Pootle.
+  The icons are all files from :file:`pootle/static/images/sprite`.  If you
+  where refering to an icon :file:`edit.png` then you would use the syntax
+  ``|icon:icon-edit|``.  The icon reference is always prefixed by ``icon:``
+  and the name of the icon is used without the extension.
+
+  E.g. ``|icon:icon-google-translate|`` will insert this
+  |icon:icon-google-translate| icon.
+
+
+
 
 JavaScript
 ----------
@@ -59,7 +74,22 @@ Whitespace
 
 Naming
   - Variable and function names should always start by a lowercase letter
-    and consequent words should be CamelCased.
+    and consequent words should be CamelCased. Never use underscores.
+
+  - If a variable holds a jQuery object, prefix it by a dollar sign ``$``. For
+    example:
+
+    .. code-block:: javascript
+
+      var $fields = $(".js-search-fields");
+
+Selectors
+  - Prefix selectors that deal with JavaScript with ``js-``. This way it's
+    clear the separation between class selectors that deal with presentation
+    (CSS) and functionality (JavaScript).
+
+  - Use the same naming criterion as with CSS selector names, ie, lowercase and
+    consequent words separated by dashes.
 
 Control statements
   Control statements such as ``if``, ``for``, or ``switch`` should follow

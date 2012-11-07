@@ -332,7 +332,7 @@ Translation environment configuration settings.
   ``GOOGLE_TRANSLATE``: Google Translate service.
     For this service you need to set the API key. Note that Google Translate
     API is a paid service. See more at
-    http://code.google.com/apis/language/translate/v2/pricing.html
+    https://developers.google.com/translate/v2/pricing 
 
 
 .. setting:: PARSE_POOL_CULL_FREQUENCY
@@ -369,4 +369,22 @@ Translation environment configuration settings.
 ``VCS_DIRECTORY``
   Default: ``working_path('repos')``
 
+  .. versionadded:: 2.2
+
   The directory where version control clones/checkouts are kept.
+
+Deprecated settings
+-------------------
+
+.. setting:: ENABLE_ALT_SRC
+
+``ENABLE_ALT_SRC``
+  Defaut: ``True``
+
+  .. deprecated:: 2.2
+
+  Display alternate source languages in the translation interface.
+
+  .. note:: Alternate source languages are now on by default. This ensures
+     that translators have access to as much useful information as possible
+     when translating.
