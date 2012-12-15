@@ -329,10 +329,22 @@ class TranslationProject(models.Model):
         from pootle_misc import versioncontrol
         project_path = self.project.get_real_path()
 
+        commitdata = {
+            'server': settings.TITLE,
+            'project': self.project.fullname,
+            'language': self.language.name,
+        }
+        #TODO for when template projects support quickstats: 'total'
+
+        default_message = u"New files added from %(server)s based on templates"
+
+        try:
+            message = settings.VCS_INIT_MESSAGE % commitdata
+        except (KeyError, TypeError):
+            message = default_message % commitdata
+
         if new_files and versioncontrol.hasversioning(project_path):
             from pootle.scripts import hooks
-            message = "New files added from %s based on templates" % \
-                      (settings.TITLE)
 
             filestocommit = []
             for new_file in new_files:
@@ -351,8 +363,7 @@ class TranslationProject(models.Model):
 
             success = True
             try:
-                output = versioncontrol.add_files(project_path,
-                                                  filestocommit, message)
+                versioncontrol.add_files(project_path, filestocommit, message)
             except Exception, e:
                 logging.error(u"Failed to add files: %s", e)
                 success = False
@@ -760,7 +771,10 @@ class TranslationProject(models.Model):
 
         default_message = u"Update from %(server)s"
 
-        message = default_message % commitdata
+        try:
+            message = settings.VCS_COMMIT_MESSAGE % commitdata
+        except (KeyError, TypeError):
+            message = default_message % commitdata
 
         from pootle.scripts import hooks
         try:
