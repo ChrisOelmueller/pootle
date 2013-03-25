@@ -210,7 +210,7 @@ profile, see the sections on customization below.
 After the activation email has been sent,
 ``registration.views.register`` issues a redirect to the URL
 ``/accounts/register/complete/``. By default, this is mapped to the
-``direct_to_template`` generic view, and displays the template
+``TemplateView.as_view`` generic view, and displays the template
 ``registration/registration_complete.html``; this is intended to show
 a short message telling the user to check his/her email for the
 activation link.

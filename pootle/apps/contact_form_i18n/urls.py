@@ -12,17 +12,18 @@ hierarchy (for best results with the defaults, include it under
 
 
 from django.conf.urls import patterns, url
-from django.views.generic.simple import direct_to_template
+from django.views.generic import TemplateView
 
 from contact_form_i18n.views import contact_form
 
 
-urlpatterns = patterns('',
-                       url(r'^/?$',
-                           contact_form,
-                           name='contact_form'),
-                       url(r'^sent/?$',
-                           direct_to_template,
-                           { 'template': 'contact_form/contact_form_sent.html' },
-                           name='contact_form_sent'),
-                       )
+urlpatterns = patterns(
+    '',
+    url(r'^/?$',
+        contact_form,
+        name='contact_form'),
+    url(r'^sent/?$',
+        TemplateView.as_view(
+            template_name='contact_form/contact_form_sent.html'),
+        name='contact_form_sent'),
+    )
