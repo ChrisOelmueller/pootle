@@ -21,6 +21,9 @@
 import gettext
 import logging
 import os
+import shutil
+import zipfile
+from cStringIO import StringIO
 
 from django.conf import settings
 from django.contrib import messages
@@ -30,13 +33,27 @@ from django.db.models.signals import post_save
 from django.utils.encoding import force_unicode
 from django.utils.translation import ugettext_lazy as _
 
+from translate.filters import checks
 from translate.misc.lru import LRUCachingDict
+from translate.search import indexing, match
 from translate.storage.base import ParseError
 
 from pootle.core.markup import get_markup_filter_name, MarkupField
+
 from pootle_app.lib.util import RelatedManager
 from pootle_app.models.directory import Directory
+from pootle_app.models.signals import (post_template_update, post_vc_commit,
+                                       post_vc_update)
+from pootle_app.project_tree import (add_files, convert_template,
+                                     direct_language_match_filename,
+                                     get_translated_name,
+                                     get_translated_name_gnu,
+                                     get_translation_project_dir,
+                                     match_template_filename, sync_from_vcs,
+                                     translation_project_should_exist)
 from pootle_language.models import Language
+from pootle_misc import versioncontrol, ptempfile as tempfile
+
 from pootle_misc.aggregate import group_by_count_extra, max_column
 from pootle_misc.baseurl import l
 from pootle_misc.stats import stats_message, stats_message_raw
@@ -63,8 +80,7 @@ class TranslationProjectNonDBState(object):
 
 
 def create_translation_project(language, project):
-    from pootle_app import project_tree
-    if project_tree.translation_project_should_exist(language, project):
+    if translation_project_should_exist(language, project):
         try:
             translation_project, created = TranslationProject.objects \
                     .get_or_create(language=language, project=project)
@@ -126,7 +142,6 @@ class TranslationProject(models.Model):
         created = self.id is None
 
         project_dir = self.project.get_real_path()
-        from pootle_app.project_tree import get_translation_project_dir
         self.abs_real_path = get_translation_project_dir(self.language,
                 project_dir, self.file_style, make_dirs=True)
         self.directory = self.language.directory \
@@ -167,7 +182,6 @@ class TranslationProject(models.Model):
     file_style = property(_get_treestyle)
 
     def _get_checker(self):
-        from translate.filters import checks
         checkerclasses = [checks.projectcheckers.get(self.project.checkstyle,
                                                      checks.StandardChecker),
                           checks.StandardUnitChecker]
@@ -298,10 +312,6 @@ class TranslationProject(models.Model):
         if pootle_path is None:
             oldstats = self.getquickstats()
 
-        from pootle_app.project_tree import (convert_template,
-                                             get_translated_name,
-                                             get_translated_name_gnu)
-
         for store in template_translation_project.stores.iterator():
             if self.file_style == 'gnu':
                 new_pootle_path, new_path = get_translated_name_gnu(self, store)
@@ -326,7 +336,6 @@ class TranslationProject(models.Model):
         all_files, new_files = self.scan_files(vcs_sync=False)
         #self.update(conservative=False)
 
-        from pootle_misc import versioncontrol
         project_path = self.project.get_real_path()
 
         if new_files and versioncontrol.hasversioning(project_path):
@@ -368,8 +377,6 @@ class TranslationProject(models.Model):
 
         if pootle_path is None:
             newstats = self.getquickstats()
-
-            from pootle_app.models.signals import post_template_update
             post_template_update.send(sender=self, oldstats=oldstats,
                                       newstats=newstats)
 
@@ -386,10 +393,6 @@ class TranslationProject(models.Model):
         # Scan for pots if template project
         if self.is_template_project:
             ext = os.extsep + self.project.get_template_filetype()
-
-        from pootle_app.project_tree import (add_files, match_template_filename,
-                                             direct_language_match_filename,
-                                             sync_from_vcs)
 
         all_files = []
         new_files = []
@@ -464,7 +467,6 @@ class TranslationProject(models.Model):
 
         try:
             logging.debug(u"Updating %s from version control", store.file.name)
-            from pootle_misc import versioncontrol
             versioncontrol.update_file(filetoupdate)
             store.file._delete_store_cache()
             store.file._update_store_cache()
@@ -514,7 +516,6 @@ class TranslationProject(models.Model):
         old_stats = self.getquickstats()
         remote_stats = {}
 
-        from pootle_misc import versioncontrol
         try:
             versioncontrol.update_dir(self.real_path)
         except IOError, e:
@@ -604,7 +605,6 @@ class TranslationProject(models.Model):
             msg = u"<br/>".join([force_unicode(m) for m in msg])
             messages.info(request, msg)
 
-        from pootle_app.models.signals import post_vc_update
         post_vc_update.send(sender=self, oldstats=old_stats,
                 remotestats=remote_stats, newstats=new_stats)
 
@@ -625,7 +625,6 @@ class TranslationProject(models.Model):
             msg = u"<br/>".join([force_unicode(m) for m in msg])
             messages.info(request, msg)
 
-            from pootle_app.models.signals import post_vc_update
             post_vc_update.send(sender=self, oldstats=old_stats,
                 remotestats=remote_stats, newstats=new_stats)
         except VersionControlError, e:
@@ -679,7 +678,6 @@ class TranslationProject(models.Model):
 
         success = True
         try:
-            from pootle_misc import versioncontrol
             project_path = self.project.get_real_path()
             versioncontrol.add_files(
                     project_path,
@@ -713,7 +711,6 @@ class TranslationProject(models.Model):
                 # impossible
                 pass
 
-        from pootle_app.models.signals import post_vc_commit
         post_vc_commit.send(sender=self, path_obj=directory, stats=stats,
                             user=user, success=success)
 
@@ -750,7 +747,6 @@ class TranslationProject(models.Model):
 
         success = True
         try:
-            from pootle_misc import versioncontrol
             for file in filestocommit:
                 versioncontrol.commit_file(file, message=message, author=author)
 
@@ -782,7 +778,6 @@ class TranslationProject(models.Model):
             # impossible
             pass
 
-        from pootle_app.models.signals import post_vc_commit
         post_vc_commit.send(sender=self, path_obj=store, stats=stats, user=user,
                             success=success)
 
@@ -801,9 +796,6 @@ class TranslationProject(models.Model):
 
     def get_archive(self, stores, path=None):
         """Returns an archive of the given files."""
-        import shutil
-        from pootle_misc import ptempfile as tempfile
-
         tempzipfile = None
 
         try:
@@ -845,10 +837,8 @@ class TranslationProject(models.Model):
                 os.close(fd)
                 archivecontents = open(tempzipfile, "wb")
             else:
-                import cStringIO
-                archivecontents = cStringIO.StringIO()
+                archivecontents = StringIO()
 
-            import zipfile
             archive = zipfile.ZipFile(archivecontents, 'w',
                                       zipfile.ZIP_DEFLATED)
             for store in stores.iterator():
@@ -881,7 +871,6 @@ class TranslationProject(models.Model):
         """
         logging.debug(u"Loading indexer for %s", self.pootle_path)
         indexdir = os.path.join(self.abs_real_path, self.index_directory)
-        from translate.search import indexing
         indexer = indexing.get_indexer(indexdir)
         indexer.set_field_analyzers({
             "pofilename": indexer.ANALYZER_EXACT,
@@ -1043,7 +1032,6 @@ class TranslationProject(models.Model):
             return
 
         if mtime != self.non_db_state.termmatchermtime:
-            from translate.search import match
             self.non_db_state.termmatcher = match.terminologymatcher(
                     terminology_stores.iterator(),
             )
