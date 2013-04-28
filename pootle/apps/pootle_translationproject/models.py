@@ -39,7 +39,7 @@ from pootle_app.models.directory import Directory
 from pootle_language.models import Language
 from pootle_misc.aggregate import group_by_count_extra, max_column
 from pootle_misc.baseurl import l
-from pootle_misc.stats import stats_message, stats_message_raw
+from pootle_misc.stats import stats_message
 from pootle_misc.util import getfromcache, dictsum, deletefromcache
 from pootle_project.models import Project
 from pootle_store.models import Store, Unit, QualityCheck, PARSED, CHECKED
@@ -648,9 +648,6 @@ class TranslationProject(models.Model):
         self.sync()
         stats = self.getquickstats()
 
-        message = stats_message_raw("Commit from %s by user %s." % \
-                (settings.TITLE, user.username), stats)
-
         # Also provide the full author (user with email appended), since
         # some VCS like to work with those (ie. Git).
         if user.is_authenticated() and len(user.email):
@@ -673,6 +670,10 @@ class TranslationProject(models.Model):
             'project': self.project.fullname,
             'language': self.language.name,
         }
+
+        default_message = u"Update from %(server)s"
+
+        message = default_message % commitdata
 
         filestocommit = []
         from pootle.scripts import hooks
@@ -739,9 +740,6 @@ class TranslationProject(models.Model):
                    conservative=True)
         stats = store.getquickstats()
 
-        message = stats_message_raw("Commit from %s by user %s." % \
-                (settings.TITLE, user.username), stats)
-
         # Also provide the full author (user with email appended), since
         # some VCS like to work with those (ie. Git).
         if user.is_authenticated() and len(user.email):
@@ -759,6 +757,10 @@ class TranslationProject(models.Model):
             'project': self.project.fullname,
             'language': self.language.name,
         }
+
+        default_message = u"Update from %(server)s"
+
+        message = default_message % commitdata
 
         from pootle.scripts import hooks
         try:
