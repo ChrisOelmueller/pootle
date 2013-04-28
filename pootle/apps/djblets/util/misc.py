@@ -33,10 +33,7 @@ try:
 except ImportError:
     import pickle
 
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
+from cStringIO import StringIO
 
 from django.core.cache import cache
 from django.conf import settings
