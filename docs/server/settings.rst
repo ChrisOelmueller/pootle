@@ -413,6 +413,16 @@ Translation environment configuration settings.
   The directory where the translation files are kept.
 
 
+.. setting:: VCS_DIRECTORY
+
+``VCS_DIRECTORY``
+  Default: ``working_path('repos')``
+
+  .. versionadded:: 2.5
+
+  The directory where version control clones/checkouts are kept.
+
+
 .. setting:: VCS_COMMIT_MESSAGE
 
 ``VCS_COMMIT_MESSAGE``
@@ -449,16 +459,6 @@ Translation environment configuration settings.
 
   Available placeholder variables:
   ``server``, ``project``, ``language``, ``filenames``.
-
-
-.. setting:: VCS_DIRECTORY
-
-``VCS_DIRECTORY``
-  Default: ``working_path('repos')``
-
-  .. versionadded:: 2.5
-
-  The directory where version control clones/checkouts are kept.
 
 
 .. _settings#deprecated:
