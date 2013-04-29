@@ -422,7 +422,7 @@ Translation environment configuration settings.
 
     %(filename)s: %(translated)d of %(total)d messages translated, %(fuzzy)d fuzzy.
 
-  .. versionadded:: 2.5
+  .. versionadded:: 2.5.1
 
   The template for creating commit messages when committing translations
   to version control.
@@ -442,7 +442,7 @@ Translation environment configuration settings.
 
     New files: %(filenames)s
 
-  .. versionadded:: 2.5
+  .. versionadded:: 2.5.1
 
   The template for creating commit messages when initializing a language
   under version control from templates.
